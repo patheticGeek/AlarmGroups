@@ -119,3 +119,43 @@ data class OverrideWithEffects(
     @Relation(parentColumn = "id", entityColumn = "overrideId")
     val effects: List<OverrideEffect>,
 )
+
+/** A saved override without dates, e.g. "WFH: pause Office, turn on WFH", applied to any date range in two taps. */
+@Serializable
+@Entity(tableName = "override_presets")
+data class OverridePreset(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val createdAt: Long = System.currentTimeMillis(),
+)
+
+@Serializable
+@Entity(
+    tableName = "preset_effects",
+    foreignKeys = [
+        ForeignKey(
+            entity = OverridePreset::class,
+            parentColumns = ["id"],
+            childColumns = ["presetId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("presetId"), Index("targetGroupId")],
+)
+data class PresetEffect(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val presetId: Long = 0,
+    /** Group id, or [UNGROUPED_ID]. */
+    val targetGroupId: Long,
+    val action: OverrideAction,
+    @Embedded(prefix = "repeat_") val repeat: RepeatRule = RepeatRule.Daily,
+) {
+    fun toOverrideEffect() = OverrideEffect(targetGroupId = targetGroupId, action = action, repeat = repeat)
+}
+
+@Serializable
+data class PresetWithEffects(
+    @Embedded val preset: OverridePreset,
+    @Relation(parentColumn = "id", entityColumn = "presetId")
+    val effects: List<PresetEffect>,
+)

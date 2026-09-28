@@ -1,6 +1,7 @@
 package dev.patheticgeek.alarmgroups.data
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -9,6 +10,8 @@ import androidx.room.TypeConverters
 import dev.patheticgeek.alarmgroups.model.Alarm
 import dev.patheticgeek.alarmgroups.model.AlarmGroup
 import dev.patheticgeek.alarmgroups.model.OverrideEffect
+import dev.patheticgeek.alarmgroups.model.OverridePreset
+import dev.patheticgeek.alarmgroups.model.PresetEffect
 import dev.patheticgeek.alarmgroups.model.ScheduleOverride
 import java.time.LocalDate
 
@@ -21,15 +24,22 @@ class Converters {
 }
 
 @Database(
-    entities = [AlarmGroup::class, Alarm::class, ScheduleOverride::class, OverrideEffect::class],
-    version = 1,
+    entities = [
+        AlarmGroup::class, Alarm::class, ScheduleOverride::class, OverrideEffect::class,
+        OverridePreset::class, PresetEffect::class,
+    ],
+    version = 2,
     exportSchema = true,
+    autoMigrations = [
+        AutoMigration(from = 1, to = 2), // + override presets
+    ],
 )
 @TypeConverters(Converters::class)
 abstract class AlarmDatabase : RoomDatabase() {
     abstract fun alarmDao(): AlarmDao
     abstract fun groupDao(): GroupDao
     abstract fun overrideDao(): OverrideDao
+    abstract fun presetDao(): PresetDao
 
     companion object {
         const val NAME = "alarmgroups.db"

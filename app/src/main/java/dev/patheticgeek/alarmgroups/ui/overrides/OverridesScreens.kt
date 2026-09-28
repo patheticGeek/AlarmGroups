@@ -12,6 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.filled.BookmarkAdd
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -64,31 +71,16 @@ fun OverridesTab(
     state: OverridesUiState,
     vm: OverridesViewModel,
     padding: PaddingValues,
+    snackbar: SnackbarHostState,
     onEdit: (Long) -> Unit,
+    onEditPreset: (Long) -> Unit,
 ) {
     if (state.loading) {
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         return
     }
-    if (state.items.isEmpty()) {
-        Column(
-            Modifier.fillMaxSize().padding(padding).padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Icon(Icons.Filled.EventBusy, contentDescription = null, modifier = Modifier.size(56.dp), tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(16.dp))
-            Text("No overrides", style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "An override changes groups for a date range — e.g. a vacation that pauses Office and WFH and turns " +
-                    "on Vacation, or a week where Office only rings on Wednesday.",
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        return
-    }
+    val scope = rememberCoroutineScope()
+    var applying by remember { mutableStateOf<PresetItem?>(null) }
     LazyColumn(
         contentPadding = PaddingValues(
             start = 16.dp,
@@ -98,6 +90,37 @@ fun OverridesTab(
         ),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        item(key = "presets-header") {
+            SectionHeader("Presets", action = "New preset", onAction = { onEditPreset(0) })
+        }
+        if (state.presets.isEmpty()) {
+            item(key = "presets-empty") {
+                Hint(
+                    "Save changes you make often — e.g. \"WFH\": pause Office, turn on WFH — and apply them to any day " +
+                        "in two taps. You can also save an override as a preset from its editor.",
+                )
+            }
+        }
+        items(state.presets, key = { "preset-${it.id}" }) { preset ->
+            OutlinedCard(onClick = { onEditPreset(preset.id) }) {
+                Row(Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(preset.name, style = MaterialTheme.typography.titleMedium)
+                        Text(preset.summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    FilledTonalButton(onClick = { applying = preset }) { Text("Apply") }
+                }
+            }
+        }
+        item(key = "overrides-header") { SectionHeader("Overrides") }
+        if (state.items.isEmpty()) {
+            item(key = "overrides-empty") {
+                Hint(
+                    "An override changes groups for a date range — e.g. a vacation that pauses Office and WFH and turns " +
+                        "on Vacation, or a week where Office only rings on Wednesday.",
+                )
+            }
+        }
         items(state.items, key = { it.data.override.id }) { item ->
             val o = item.data.override
             Card(
@@ -139,6 +162,39 @@ fun OverridesTab(
             }
         }
     }
+
+    applying?.let { preset ->
+        ApplyPresetDialog(
+            preset = preset,
+            onDismiss = { applying = null },
+            onApply = { start, end ->
+                vm.applyPreset(preset.id, start, end) { id -> scope.announceApplied(snackbar, preset, start, end, id, vm::delete) }
+            },
+        )
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String, action: String? = null, onAction: () -> Unit = {}) {
+    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f),
+        )
+        if (action != null) TextButton(onClick = onAction) { Text(action) }
+    }
+}
+
+@Composable
+private fun Hint(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -147,13 +203,22 @@ fun OverrideEditScreen(vm: OverrideEditViewModel, onDone: () -> Unit) {
     val state by vm.state.collectAsState()
     var pickRange by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(state.done) { if (state.done) onDone() }
+    LaunchedEffect(state.savedAsPreset) {
+        if (state.savedAsPreset) {
+            vm.presetSavedShown()
+            snackbar.showSnackbar("Saved as preset \"${state.name.trim()}\"")
+        }
+    }
+    val kind = if (state.isPreset) "preset" else "override"
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 navigationIcon = { IconButton(onClick = onDone) { Icon(Icons.Filled.Close, contentDescription = "Cancel") } },
-                title = { Text(if (state.isNew) "New override" else "Edit override") },
+                title = { Text(if (state.isNew) "New $kind" else "Edit $kind") },
                 actions = {
                     if (!state.isNew) {
                         IconButton(onClick = { confirmDelete = true }) { Icon(Icons.Filled.Delete, contentDescription = "Delete") }
@@ -178,20 +243,32 @@ fun OverrideEditScreen(vm: OverrideEditViewModel, onDone: () -> Unit) {
                 value = state.name,
                 onValueChange = vm::setName,
                 label = { Text("Name") },
-                placeholder = { Text("e.g. Goa trip, Office closed") },
+                placeholder = { Text(if (state.isPreset) "e.g. WFH, Sick day" else "e.g. Goa trip, Office closed") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
             )
-            ListItem(
-                modifier = Modifier.padding(horizontal = 0.dp),
-                leadingContent = { Icon(Icons.Filled.DateRange, contentDescription = null) },
-                headlineContent = { Text("Dates") },
-                supportingContent = { Text(dateRange(state.start, state.end), color = MaterialTheme.colorScheme.primary) },
-                trailingContent = { TextButton(onClick = { pickRange = true }) { Text("Change") } },
-            )
+            if (state.isPreset) {
+                Text(
+                    "A preset has no dates. Apply it from the Overrides tab or the Alarms screen and pick when.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            } else {
+                ListItem(
+                    leadingContent = { Icon(Icons.Filled.DateRange, contentDescription = null) },
+                    headlineContent = { Text("Dates") },
+                    supportingContent = { Text(dateRange(state.start, state.end), color = MaterialTheme.colorScheme.primary) },
+                    trailingContent = { TextButton(onClick = { pickRange = true }) { Text("Change") } },
+                )
+            }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("During these dates", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                Text(
+                    if (state.isPreset) "When applied" else "During these dates",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.weight(1f),
+                )
                 AssistChip(onClick = vm::pauseEverything, label = { Text("Pause everything") })
             }
             Spacer(Modifier.height(8.dp))
@@ -219,6 +296,17 @@ fun OverrideEditScreen(vm: OverrideEditViewModel, onDone: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(16.dp),
             )
+            if (!state.isPreset) {
+                OutlinedButton(
+                    onClick = vm::saveAsPreset,
+                    enabled = state.hasValidEffects,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                ) {
+                    Icon(Icons.Filled.BookmarkAdd, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Save as preset")
+                }
+            }
         }
     }
 
@@ -231,7 +319,13 @@ fun OverrideEditScreen(vm: OverrideEditViewModel, onDone: () -> Unit) {
         )
     }
     if (confirmDelete) {
-        ConfirmDialog("Delete override?", "Groups go back to their normal schedule.", "Delete", { confirmDelete = false }, vm::delete)
+        ConfirmDialog(
+            title = "Delete $kind?",
+            text = if (state.isPreset) "Overrides already created from it stay." else "Groups go back to their normal schedule.",
+            confirm = "Delete",
+            onDismiss = { confirmDelete = false },
+            onConfirm = { vm.delete() },
+        )
     }
 }
 

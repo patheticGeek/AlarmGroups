@@ -4,7 +4,10 @@ import dev.patheticgeek.alarmgroups.model.Alarm
 import dev.patheticgeek.alarmgroups.model.AlarmGroup
 import dev.patheticgeek.alarmgroups.model.OverrideAction
 import dev.patheticgeek.alarmgroups.model.OverrideEffect
+import dev.patheticgeek.alarmgroups.model.OverridePreset
 import dev.patheticgeek.alarmgroups.model.OverrideWithEffects
+import dev.patheticgeek.alarmgroups.model.PresetEffect
+import dev.patheticgeek.alarmgroups.model.PresetWithEffects
 import dev.patheticgeek.alarmgroups.model.RepeatRule
 import dev.patheticgeek.alarmgroups.model.ScheduleOverride
 import dev.patheticgeek.alarmgroups.model.UNGROUPED_ID
@@ -65,5 +68,21 @@ class BackupCodecTest {
         val a = BackupCodec.decode(text).alarms.single()
         assertEquals(23, a.hour)
         assertEquals(10, a.volume)
+    }
+
+    @Test
+    fun `presets survive a round trip`() {
+        val preset = PresetWithEffects(
+            OverridePreset(id = 4, name = "WFH"),
+            listOf(PresetEffect(id = 1, presetId = 4, targetGroupId = 1, action = OverrideAction.PAUSE)),
+        )
+        val text = BackupCodec.encode(Snapshot(emptyList(), listOf(office), emptyList()), null, listOf(preset))
+        assertEquals(listOf(preset), BackupCodec.decode(text).presets)
+    }
+
+    @Test
+    fun `backups from before presets existed still load`() {
+        val old = """{"format":"alarmgroups-backup","version":1,"groups":[],"alarms":[],"overrides":[]}"""
+        assertTrue(BackupCodec.decode(old).presets.isEmpty())
     }
 }

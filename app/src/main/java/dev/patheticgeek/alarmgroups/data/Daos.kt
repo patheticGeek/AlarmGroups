@@ -9,7 +9,10 @@ import androidx.room.Update
 import dev.patheticgeek.alarmgroups.model.Alarm
 import dev.patheticgeek.alarmgroups.model.AlarmGroup
 import dev.patheticgeek.alarmgroups.model.OverrideEffect
+import dev.patheticgeek.alarmgroups.model.OverridePreset
 import dev.patheticgeek.alarmgroups.model.OverrideWithEffects
+import dev.patheticgeek.alarmgroups.model.PresetEffect
+import dev.patheticgeek.alarmgroups.model.PresetWithEffects
 import dev.patheticgeek.alarmgroups.model.ScheduleOverride
 import kotlinx.coroutines.flow.Flow
 
@@ -122,5 +125,44 @@ interface OverrideDao {
     suspend fun deleteEmpty()
 
     @Query("DELETE FROM overrides")
+    suspend fun deleteAll()
+}
+
+@Dao
+interface PresetDao {
+    @Transaction
+    @Query("SELECT * FROM override_presets ORDER BY name COLLATE NOCASE, id")
+    fun observeAll(): Flow<List<PresetWithEffects>>
+
+    @Transaction
+    @Query("SELECT * FROM override_presets ORDER BY name COLLATE NOCASE, id")
+    suspend fun getAll(): List<PresetWithEffects>
+
+    @Transaction
+    @Query("SELECT * FROM override_presets WHERE id = :id")
+    suspend fun get(id: Long): PresetWithEffects?
+
+    @Insert
+    suspend fun insert(p: OverridePreset): Long
+
+    @Update
+    suspend fun update(p: OverridePreset)
+
+    @Query("DELETE FROM override_presets WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Insert
+    suspend fun insertEffects(effects: List<PresetEffect>)
+
+    @Query("DELETE FROM preset_effects WHERE presetId = :presetId")
+    suspend fun deleteEffects(presetId: Long)
+
+    @Query("DELETE FROM preset_effects WHERE targetGroupId = :groupId")
+    suspend fun deleteEffectsForGroup(groupId: Long)
+
+    @Query("DELETE FROM override_presets WHERE id NOT IN (SELECT DISTINCT presetId FROM preset_effects)")
+    suspend fun deleteEmpty()
+
+    @Query("DELETE FROM override_presets")
     suspend fun deleteAll()
 }

@@ -5,6 +5,7 @@ import android.net.Uri
 import dev.patheticgeek.alarmgroups.model.Alarm
 import dev.patheticgeek.alarmgroups.model.AlarmGroup
 import dev.patheticgeek.alarmgroups.model.OverrideWithEffects
+import dev.patheticgeek.alarmgroups.model.PresetWithEffects
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -19,6 +20,7 @@ data class BackupFile(
     val groups: List<AlarmGroup>,
     val alarms: List<Alarm>,
     val overrides: List<OverrideWithEffects>,
+    val presets: List<PresetWithEffects> = emptyList(),
     val settings: Settings? = null,
 ) {
     companion object {
@@ -37,13 +39,14 @@ object BackupCodec {
         ignoreUnknownKeys = true
     }
 
-    fun encode(snapshot: Snapshot, settings: Settings?): String = json.encodeToString(
+    fun encode(snapshot: Snapshot, settings: Settings?, presets: List<PresetWithEffects> = emptyList()): String = json.encodeToString(
         BackupFile.serializer(),
         BackupFile(
             groups = snapshot.groups,
             // Transient ringing state isn't worth carrying to another install.
             alarms = snapshot.alarms.map { it.copy(snoozedUntil = null, nextTriggerAt = null) },
             overrides = snapshot.overrides,
+            presets = presets,
             settings = settings,
         ),
     )
@@ -75,6 +78,9 @@ object BackupCodec {
             overrides = file.overrides.map { o ->
                 o.copy(effects = o.effects.filter { it.targetGroupId == 0L || it.targetGroupId in groupIds })
             }.filter { it.effects.isNotEmpty() },
+            presets = file.presets.map { p ->
+                p.copy(effects = p.effects.filter { it.targetGroupId == 0L || it.targetGroupId in groupIds })
+            }.filter { it.effects.isNotEmpty() },
         )
     }
 
@@ -87,7 +93,7 @@ class BackupManager(
     private val settings: SettingsRepository,
 ) {
     suspend fun export(uri: Uri) = withContext(Dispatchers.IO) {
-        val text = BackupCodec.encode(repository.snapshot(), settings.current())
+        val text = BackupCodec.encode(repository.snapshot(), settings.current(), repository.presets())
         val out = context.contentResolver.openOutputStream(uri, "wt") ?: throw BackupException("Can't write to that file.")
         out.bufferedWriter().use { it.write(text) }
     }
@@ -98,7 +104,7 @@ class BackupManager(
         val text = input.bufferedReader().use { it.readText() }
         if (text.length > BackupCodec.MAX_CHARS) throw BackupException("That file is too large to be a backup.")
         val file = BackupCodec.decode(text)
-        repository.replaceAll(Snapshot(file.alarms, file.groups, file.overrides))
+        repository.replaceAll(Snapshot(file.alarms, file.groups, file.overrides), file.presets)
         file.settings?.let { imported -> settings.update { imported.copy(starterGroupsOffered = true) } }
         file
     }

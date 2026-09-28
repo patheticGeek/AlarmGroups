@@ -5,7 +5,10 @@ import dev.patheticgeek.alarmgroups.domain.ScheduleCalculator
 import dev.patheticgeek.alarmgroups.model.Alarm
 import dev.patheticgeek.alarmgroups.model.AlarmGroup
 import dev.patheticgeek.alarmgroups.model.OverrideEffect
+import dev.patheticgeek.alarmgroups.model.OverridePreset
 import dev.patheticgeek.alarmgroups.model.OverrideWithEffects
+import dev.patheticgeek.alarmgroups.model.PresetEffect
+import dev.patheticgeek.alarmgroups.model.PresetWithEffects
 import dev.patheticgeek.alarmgroups.model.RepeatRule
 import dev.patheticgeek.alarmgroups.model.RepeatType
 import dev.patheticgeek.alarmgroups.model.ScheduleOverride
@@ -41,6 +44,7 @@ class AlarmRepository(
     private val alarms = db.alarmDao()
     private val groups = db.groupDao()
     private val overrides = db.overrideDao()
+    private val presets = db.presetDao()
 
     fun observeSnapshot(): Flow<Snapshot> =
         combine(alarms.observeAll(), groups.observeAll(), overrides.observeAll(), ::Snapshot)
@@ -224,6 +228,8 @@ class AlarmRepository(
             }
             overrides.deleteEffectsForGroup(id)
             overrides.deleteEmpty()
+            presets.deleteEffectsForGroup(id)
+            presets.deleteEmpty()
             groups.delete(g)
         }
         onRemoved(removed)
@@ -266,13 +272,38 @@ class AlarmRepository(
         onChanged()
     }
 
+    // ---- Presets ----
+
+    fun observePresets(): Flow<List<PresetWithEffects>> = presets.observeAll()
+    suspend fun presets(): List<PresetWithEffects> = presets.getAll()
+    suspend fun preset(id: Long): PresetWithEffects? = presets.get(id)
+
+    suspend fun savePreset(p: OverridePreset, effects: List<PresetEffect>): Long = db.withTransaction {
+        val id = if (p.id == 0L) presets.insert(p) else p.id.also { presets.update(p) }
+        presets.deleteEffects(id)
+        presets.insertEffects(effects.map { it.copy(id = 0, presetId = id) })
+        id
+    }
+
+    suspend fun deletePreset(id: Long) = presets.delete(id)
+
+    /** Creates an override from the preset for [start]..[end]. Returns the new override's id. */
+    suspend fun applyPreset(id: Long, start: LocalDate, end: LocalDate): Long? {
+        val p = presets.get(id) ?: return null
+        return saveOverride(
+            ScheduleOverride(name = p.preset.name, startDate = start, endDate = maxOf(start, end)),
+            p.effects.map(PresetEffect::toOverrideEffect),
+        )
+    }
+
     // ---- Backup ----
 
     /** Replaces everything with [data] (ids preserved so references stay valid). */
-    suspend fun replaceAll(data: Snapshot) {
+    suspend fun replaceAll(data: Snapshot, presetData: List<PresetWithEffects> = emptyList()) {
         val before = alarms.getAll().map { it.id }
         db.withTransaction {
             overrides.deleteAll()
+            presets.deleteAll()
             alarms.deleteAll()
             groups.deleteAll()
             groups.insertAll(data.groups)
@@ -280,6 +311,10 @@ class AlarmRepository(
             data.overrides.forEach { o ->
                 val id = overrides.insert(o.override)
                 overrides.insertEffects(o.effects.map { it.copy(id = 0, overrideId = id) })
+            }
+            presetData.forEach { p ->
+                val id = presets.insert(p.preset.copy(id = 0))
+                presets.insertEffects(p.effects.map { it.copy(id = 0, presetId = id) })
             }
         }
         onRemoved(before - data.alarms.map { it.id }.toSet())

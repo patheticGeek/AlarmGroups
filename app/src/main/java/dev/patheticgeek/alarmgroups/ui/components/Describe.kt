@@ -1,7 +1,5 @@
 package dev.patheticgeek.alarmgroups.ui.components
 
-import dev.patheticgeek.alarmgroups.model.OverrideAction
-import dev.patheticgeek.alarmgroups.model.OverrideWithEffects
 import dev.patheticgeek.alarmgroups.model.RepeatRule
 import dev.patheticgeek.alarmgroups.model.RepeatType
 import dev.patheticgeek.alarmgroups.util.TimeFormat
@@ -38,15 +36,6 @@ fun RepeatRule.describe(): String = when (type) {
 
 fun dateRange(start: LocalDate, end: LocalDate): String =
     if (start == end) TimeFormat.day(start) else "${TimeFormat.day(start)} – ${TimeFormat.day(end)}"
-
-fun OverrideWithEffects.describeEffects(groupName: (Long) -> String): String =
-    effects.joinToString(" · ") { e ->
-        val what = when (e.action) {
-            OverrideAction.PAUSE -> "paused"
-            OverrideAction.REPEAT -> e.repeat.describe().replaceFirstChar { it.lowercase() }
-        }
-        "${groupName(e.targetGroupId)}: $what"
-    }
 
 fun durationLabel(seconds: Int): String = when {
     seconds <= 0 -> "Off"

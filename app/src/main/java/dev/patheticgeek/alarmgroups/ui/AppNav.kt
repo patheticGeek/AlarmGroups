@@ -35,6 +35,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -58,6 +59,7 @@ import dev.patheticgeek.alarmgroups.ui.health.Check
 import dev.patheticgeek.alarmgroups.ui.overrides.OverrideEditScreen
 import dev.patheticgeek.alarmgroups.ui.overrides.OverrideEditViewModel
 import dev.patheticgeek.alarmgroups.ui.overrides.OverridesTab
+import dev.patheticgeek.alarmgroups.ui.overrides.announceApplied
 import dev.patheticgeek.alarmgroups.ui.overrides.OverridesViewModel
 import dev.patheticgeek.alarmgroups.ui.ringing.RingingActivity
 import dev.patheticgeek.alarmgroups.ui.settings.SettingsTab
@@ -67,7 +69,7 @@ import kotlinx.serialization.Serializable
 @Serializable object HomeRoute
 @Serializable data class AlarmRoute(val id: Long = 0, val groupId: Long = -1)
 @Serializable data class GroupRoute(val id: Long = 0)
-@Serializable data class OverrideRoute(val id: Long = 0)
+@Serializable data class OverrideRoute(val id: Long = 0, val preset: Boolean = false)
 
 enum class Tab(val title: String) { ALARMS("Alarms"), OVERRIDES("Overrides"), SETTINGS("Settings") }
 
@@ -83,6 +85,7 @@ fun AppNav(container: AppContainer, failing: List<Check>, onHealthChanged: () ->
                 onEditAlarm = { id, groupId -> nav.navigate(AlarmRoute(id, groupId ?: -1)) },
                 onEditGroup = { nav.navigate(GroupRoute(it)) },
                 onEditOverride = { nav.navigate(OverrideRoute(it)) },
+                onEditPreset = { nav.navigate(OverrideRoute(it, preset = true)) },
             )
         }
         composable<AlarmRoute> { entry ->
@@ -97,7 +100,7 @@ fun AppNav(container: AppContainer, failing: List<Check>, onHealthChanged: () ->
         }
         composable<OverrideRoute> { entry ->
             val r = entry.toRoute<OverrideRoute>()
-            val vm = viewModel { OverrideEditViewModel(container, r.id) }
+            val vm = viewModel { OverrideEditViewModel(container, r.id, r.preset) }
             OverrideEditScreen(vm, onDone = { nav.popBackStack() })
         }
     }
@@ -112,6 +115,7 @@ private fun Home(
     onEditAlarm: (id: Long, groupId: Long?) -> Unit,
     onEditGroup: (Long) -> Unit,
     onEditOverride: (Long) -> Unit,
+    onEditPreset: (Long) -> Unit,
 ) {
     val context = LocalContext.current
     var tab by rememberSaveable { mutableStateOf(Tab.ALARMS) }
@@ -120,6 +124,8 @@ private fun Home(
     val overridesVm = viewModel { OverridesViewModel(container) }
     val settingsVm = viewModel { SettingsViewModel(container) }
     val ringing by RingingState.alarms.collectAsState()
+    val overridesState by overridesVm.state.collectAsState()
+    val scope = rememberCoroutineScope()
     val scroll = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     // Ask for notification permission up front: without it the ringing screen can't appear.
@@ -208,11 +214,17 @@ private fun Home(
                         onAddAlarm = { groupId -> onEditAlarm(0, groupId) },
                         onEditAlarm = { onEditAlarm(it, null) },
                         onEditGroup = onEditGroup,
+                        presets = overridesState.presets,
+                        onApplyPreset = { preset, start, end ->
+                            overridesVm.applyPreset(preset.id, start, end) { id ->
+                                scope.announceApplied(snackbar, preset, start, end, id, overridesVm::delete)
+                            }
+                        },
                     )
                 }
                 Tab.OVERRIDES -> {
                     val state by overridesVm.state.collectAsState()
-                    OverridesTab(state, overridesVm, padding, onEdit = onEditOverride)
+                    OverridesTab(state, overridesVm, padding, snackbar, onEdit = onEditOverride, onEditPreset = onEditPreset)
                 }
                 Tab.SETTINGS -> SettingsTab(settingsVm, failing, padding, snackbar, onHealthChanged)
             }

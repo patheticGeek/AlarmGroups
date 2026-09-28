@@ -69,6 +69,12 @@ android {
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }
+
+    // Exported Room schemas, so migration tests can build old database versions. Robolectric only sees
+    // the variant's merged assets, so they go in debug (a few KB; release builds don't include them).
+    sourceSets {
+        getByName("debug").assets.directories.add("$projectDir/schemas")
+    }
 }
 
 ksp {

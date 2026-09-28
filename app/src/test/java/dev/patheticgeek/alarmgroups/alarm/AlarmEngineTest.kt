@@ -11,6 +11,9 @@ import dev.patheticgeek.alarmgroups.data.AlarmRepository
 import dev.patheticgeek.alarmgroups.data.SettingsRepository
 import dev.patheticgeek.alarmgroups.model.Alarm
 import dev.patheticgeek.alarmgroups.model.AlarmGroup
+import dev.patheticgeek.alarmgroups.model.OverrideAction
+import dev.patheticgeek.alarmgroups.model.OverridePreset
+import dev.patheticgeek.alarmgroups.model.PresetEffect
 import dev.patheticgeek.alarmgroups.model.RepeatRule
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -227,5 +230,45 @@ class AlarmEngineTest {
         now = Instant.ofEpochMilli(at(28, 6, 30))
         scheduler.rescheduleAll()
         assertEquals(listOf(at(29, 7, 0)), scheduledTimes())
+    }
+
+    @Test
+    fun `applying a preset creates an override for the chosen days`() = runBlocking {
+        val office = repo.saveGroup(AlarmGroup(name = "Office", repeat = RepeatRule.weekly(RepeatRule.WEEKDAYS)))
+        val wfh = repo.saveGroup(AlarmGroup(name = "WFH", repeat = RepeatRule.Daily, enabled = false))
+        repo.saveAlarm(Alarm(groupId = office, hour = 7, minute = 0))
+        repo.saveAlarm(Alarm(groupId = wfh, hour = 8, minute = 30))
+        val preset = repo.savePreset(
+            OverridePreset(name = "WFH"),
+            listOf(
+                PresetEffect(targetGroupId = office, action = OverrideAction.PAUSE),
+                PresetEffect(targetGroupId = wfh, action = OverrideAction.REPEAT, repeat = RepeatRule.Daily),
+            ),
+        )
+        val today = LocalDate.of(2026, 9, 28)
+        val overrideId = repo.applyPreset(preset, today, today)!!
+        // Today: WFH at 08:30 instead of Office at 07:00; tomorrow Office is back and WFH is off again.
+        assertEquals(listOf(at(28, 8, 30), at(29, 7, 0)), scheduledTimes())
+        assertEquals("WFH", repo.override(overrideId)!!.override.name)
+        // Undo.
+        repo.deleteOverride(overrideId)
+        assertEquals(listOf(at(28, 7, 0)), scheduledTimes())
+    }
+
+    @Test
+    fun `deleting a group removes it from presets and drops presets left empty`() = runBlocking {
+        val office = repo.saveGroup(AlarmGroup(name = "Office", repeat = RepeatRule.Daily))
+        val gym = repo.saveGroup(AlarmGroup(name = "Gym", repeat = RepeatRule.Daily))
+        val onlyOffice = repo.savePreset(OverridePreset(name = "Off"), listOf(PresetEffect(targetGroupId = office, action = OverrideAction.PAUSE)))
+        val both = repo.savePreset(
+            OverridePreset(name = "Both"),
+            listOf(
+                PresetEffect(targetGroupId = office, action = OverrideAction.PAUSE),
+                PresetEffect(targetGroupId = gym, action = OverrideAction.PAUSE),
+            ),
+        )
+        repo.deleteGroup(office, deleteAlarms = true)
+        assertNull(repo.preset(onlyOffice))
+        assertEquals(listOf(gym), repo.preset(both)!!.effects.map { it.targetGroupId })
     }
 }

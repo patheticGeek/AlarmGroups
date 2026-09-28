@@ -4,6 +4,8 @@
   rasterized sharp rather than scaled up. Content sits well inside the 160dp visible circle.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="VectorRaster"
     android:width="240dp"
     android:height="240dp"
     android:viewportWidth="240"

@@ -6,6 +6,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material3.AssistChip
+import dev.patheticgeek.alarmgroups.ui.overrides.ApplyPresetDialog
+import dev.patheticgeek.alarmgroups.ui.overrides.PresetItem
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,8 +88,11 @@ fun AlarmsTab(
     onAddAlarm: (groupId: Long?) -> Unit,
     onEditAlarm: (Long) -> Unit,
     onEditGroup: (Long) -> Unit,
+    presets: List<PresetItem>,
+    onApplyPreset: (PresetItem, LocalDate, LocalDate) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    var applying by remember { mutableStateOf<PresetItem?>(null) }
     var pauseGroup by remember { mutableStateOf<AlarmGroup?>(null) }
     var deleteGroup by remember { mutableStateOf<AlarmGroup?>(null) }
 
@@ -109,6 +118,25 @@ fun AlarmsTab(
             item(key = "health") { HealthBanner(critical, onFix) }
         }
         item(key = "next") { NextAlarmCard(state.next, state.now) }
+        if (presets.isNotEmpty()) {
+            item(key = "presets") {
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Filled.Bolt,
+                        contentDescription = "Quick overrides",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    presets.forEach { p ->
+                        AssistChip(onClick = { applying = p }, label = { Text(p.name) })
+                    }
+                }
+            }
+        }
         if (state.showStarterGroups) {
             item(key = "starter") {
                 StarterGroupsCard(onCreate = vm::createStarterGroups, onDismiss = vm::dismissStarterGroups)
@@ -169,6 +197,9 @@ fun AlarmsTab(
             onDismiss = { pauseGroup = null },
             onPick = { vm.pauseGroupThrough(g.id, it) },
         )
+    }
+    applying?.let { p ->
+        ApplyPresetDialog(p, onDismiss = { applying = null }, onApply = { start, end -> onApplyPreset(p, start, end) })
     }
     deleteGroup?.let { g -> DeleteGroupDialog(g, onDismiss = { deleteGroup = null }, onDelete = { vm.deleteGroup(g.id, it) }) }
 }
