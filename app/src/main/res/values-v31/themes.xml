@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.AlarmGroups" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <!-- The launcher icon shows two clocks (a group); on the splash a single clock reads better. -->
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_monochrome</item>
+        <item name="android:windowSplashScreenBackground">@color/brand</item>
+    </style>
+</resources>
