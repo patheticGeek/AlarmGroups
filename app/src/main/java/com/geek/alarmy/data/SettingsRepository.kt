@@ -53,9 +53,9 @@ data class Settings(
 }
 
 /** App settings, kept in device-protected storage alongside the database. */
-class SettingsRepository(context: Context) {
+class SettingsRepository(context: Context, fileName: String = "settings") {
     private val store: DataStore<Preferences> = PreferenceDataStoreFactory.create {
-        context.deviceProtectedContext().preferencesDataStoreFile("settings")
+        context.deviceProtectedContext().preferencesDataStoreFile(fileName)
     }
 
     private object Keys {

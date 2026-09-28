@@ -7,6 +7,7 @@ import com.geek.alarmy.model.AlarmGroup
 import com.geek.alarmy.model.OverrideEffect
 import com.geek.alarmy.model.OverrideWithEffects
 import com.geek.alarmy.model.RepeatRule
+import com.geek.alarmy.model.RepeatType
 import com.geek.alarmy.model.ScheduleOverride
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -88,10 +89,18 @@ class AlarmRepository(
     suspend fun skipNext(id: Long) {
         val snap = snapshot()
         val a = snap.alarms.firstOrNull { it.id == id } ?: return
-        val next = ScheduleCalculator.nextTrigger(
+        val occ = ScheduleCalculator.nextOccurrence(
             a.copy(snoozedUntil = null), snap.groupOf(a), snap.overrides, clock().instant(), clock().zone,
         ) ?: return
-        alarms.update(a.copy(skipUntil = next.toEpochMilli(), snoozedUntil = null))
+        // Skipping a one-off would just push it to the next day; switch it off instead.
+        val oneOff = occ.plan?.repeat?.type == RepeatType.ONCE
+        alarms.update(
+            if (oneOff) {
+                a.copy(enabled = false, snoozedUntil = null, skipUntil = null)
+            } else {
+                a.copy(skipUntil = occ.instant.toEpochMilli(), snoozedUntil = null)
+            },
+        )
         onChanged()
     }
 

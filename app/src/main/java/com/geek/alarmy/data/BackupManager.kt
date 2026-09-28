@@ -29,11 +29,8 @@ data class BackupFile(
 
 class BackupException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
-class BackupManager(
-    private val context: Context,
-    private val repository: AlarmRepository,
-    private val settings: SettingsRepository,
-) {
+/** Pure JSON encoding/decoding of backups. */
+object BackupCodec {
     private val json = Json {
         prettyPrint = true
         encodeDefaults = true
@@ -81,8 +78,16 @@ class BackupManager(
         )
     }
 
+    const val MAX_CHARS = 5_000_000
+}
+
+class BackupManager(
+    private val context: Context,
+    private val repository: AlarmRepository,
+    private val settings: SettingsRepository,
+) {
     suspend fun export(uri: Uri) = withContext(Dispatchers.IO) {
-        val text = encode(repository.snapshot(), settings.current())
+        val text = BackupCodec.encode(repository.snapshot(), settings.current())
         val out = context.contentResolver.openOutputStream(uri, "wt") ?: throw BackupException("Can't write to that file.")
         out.bufferedWriter().use { it.write(text) }
     }
@@ -91,14 +96,10 @@ class BackupManager(
     suspend fun import(uri: Uri): BackupFile = withContext(Dispatchers.IO) {
         val input = context.contentResolver.openInputStream(uri) ?: throw BackupException("Can't read that file.")
         val text = input.bufferedReader().use { it.readText() }
-        if (text.length > MAX_BYTES) throw BackupException("That file is too large to be a backup.")
-        val file = decode(text)
+        if (text.length > BackupCodec.MAX_CHARS) throw BackupException("That file is too large to be a backup.")
+        val file = BackupCodec.decode(text)
         repository.replaceAll(Snapshot(file.alarms, file.groups, file.overrides))
         file.settings?.let { imported -> settings.update { imported.copy(starterGroupsOffered = true) } }
         file
-    }
-
-    companion object {
-        private const val MAX_BYTES = 5_000_000
     }
 }
