@@ -1,6 +1,6 @@
-# Routine Alarm (Android alarm app with groups)
+# Lock In (Android alarm app with groups)
 
-App name "Routine Alarm", launcher label "Routine", package `com.geek.routine` (renamed from "Alarmy" on 2026-09-29 because Alarmy is an existing app). Repo folder is still ~/Projects/alarmy.
+App name "Lock In", package `com.geek.lockin` (2026-09-29). User wanted a Gen Z name; rejected "Alarmy" (existing app) and "Routine Alarm". Repo folder is still ~/Projects/alarmy.
 
 ## User preferences
 - Work autonomously step by step; don't wait for approval between steps.

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Lock In</string>
+    <string name="app_name">AlarmGroups</string>
     <string name="alarm">Alarm</string>
     <string name="snooze_n_min">Snooze %d min</string>
     <string name="dismiss">Dismiss</string>

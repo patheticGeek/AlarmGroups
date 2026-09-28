@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "LockIn"
+rootProject.name = "AlarmGroups"
 include(":app")
