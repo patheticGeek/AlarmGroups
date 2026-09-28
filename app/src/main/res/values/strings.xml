@@ -18,4 +18,5 @@
     <string name="channel_missed_desc">Alarms that couldn\'t ring because the phone was off.</string>
     <string name="channel_fallback">Backup alarm</string>
     <string name="channel_fallback_desc">Used only if the normal alarm can\'t start. Keep this on and loud.</string>
+    <string name="widget_description">Next alarm and quick group switches</string>
 </resources>
