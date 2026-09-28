@@ -1,4 +1,6 @@
-# Alarmy (Android alarm app with groups)
+# Routine Alarm (Android alarm app with groups)
+
+App name "Routine Alarm", launcher label "Routine", package `com.geek.routine` (renamed from "Alarmy" on 2026-09-29 because Alarmy is an existing app). Repo folder is still ~/Projects/alarmy.
 
 ## User preferences
 - Work autonomously step by step; don't wait for approval between steps.
@@ -14,3 +16,4 @@
 ## Toolchain
 - System JDK is 27 (too new for Gradle/AGP). Use JDK 21 at ~/.local/share/jdks/jdk-21.0.12.1+1 via `export JAVA_HOME=...` before ./gradlew (not committed to gradle.properties).
 - Android SDK at ~/Android/Sdk (platform android-37.0). No emulator system images installed.
+- Shell is zsh: unquoted `$var` does not word-split — use xargs or arrays for file lists.
