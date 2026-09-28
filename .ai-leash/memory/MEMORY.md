@@ -12,5 +12,5 @@
 - Must be robust (missed alarm = lost money): setAlarmClock, reboot/time-change rescheduling, direct boot, audio fallbacks.
 
 ## Toolchain
-- System JDK is 27 (too new). Use JDK 21 at ~/.local/share/jdks/jdk-21.0.12.1+1 (set in gradle.properties org.gradle.java.home).
-- Android SDK at ~/Android/Sdk (platform android-37.0).
+- System JDK is 27 (too new for Gradle/AGP). Use JDK 21 at ~/.local/share/jdks/jdk-21.0.12.1+1 via `export JAVA_HOME=...` before ./gradlew (not committed to gradle.properties).
+- Android SDK at ~/Android/Sdk (platform android-37.0). No emulator system images installed.
