@@ -34,6 +34,8 @@ class AlarmRepository(
     // A provider, not a Clock: the system zone must be re-read after a timezone change.
     private val clock: () -> Clock = { Clock.systemDefaultZone() },
     private val onChanged: suspend () -> Unit = {},
+    /** Called with ids of alarms that no longer exist, so their AlarmManager entries can be cancelled. */
+    private val onRemoved: suspend (List<Long>) -> Unit = {},
 ) {
     private val alarms = db.alarmDao()
     private val groups = db.groupDao()
@@ -72,6 +74,7 @@ class AlarmRepository(
     suspend fun deleteAlarm(id: Long) {
         val a = alarms.get(id) ?: return
         alarms.delete(a)
+        onRemoved(listOf(id))
         onChanged()
     }
 
@@ -200,6 +203,7 @@ class AlarmRepository(
      * they take over the group's repeat rule so they keep ringing on the same days.
      */
     suspend fun deleteGroup(id: Long, deleteAlarms: Boolean) {
+        val removed = if (deleteAlarms) alarms.inGroup(id).map { it.id } else emptyList()
         db.withTransaction {
             val g = groups.get(id) ?: return@withTransaction
             if (deleteAlarms) {
@@ -213,6 +217,7 @@ class AlarmRepository(
             overrides.deleteEmpty()
             groups.delete(g)
         }
+        onRemoved(removed)
         onChanged()
     }
 
@@ -256,6 +261,7 @@ class AlarmRepository(
 
     /** Replaces everything with [data] (ids preserved so references stay valid). */
     suspend fun replaceAll(data: Snapshot) {
+        val before = alarms.getAll().map { it.id }
         db.withTransaction {
             overrides.deleteAll()
             alarms.deleteAll()
@@ -267,6 +273,7 @@ class AlarmRepository(
                 overrides.insertEffects(o.effects.map { it.copy(id = 0, overrideId = id) })
             }
         }
+        onRemoved(before - data.alarms.map { it.id }.toSet())
         onChanged()
     }
 }

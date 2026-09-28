@@ -15,14 +15,18 @@ import kotlinx.coroutines.launch
 
 /** Hand-rolled dependency container; everything is created lazily on first use. */
 class AppContainer(context: Context) {
-    private val app = context.applicationContext
+    val app: Context = context.applicationContext
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     val database: AlarmDatabase by lazy { AlarmDatabase.create(app) }
     val settings: SettingsRepository by lazy { SettingsRepository(app) }
     val scheduler: AlarmScheduler by lazy { AlarmScheduler(app, { repository }, settings) }
     val repository: AlarmRepository by lazy {
-        AlarmRepository(database, onChanged = { scheduler.rescheduleAll() })
+        AlarmRepository(
+            database,
+            onChanged = { scheduler.rescheduleAll() },
+            onRemoved = { ids -> scheduler.cancel(ids) },
+        )
     }
 }
 

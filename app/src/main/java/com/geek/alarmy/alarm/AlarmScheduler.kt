@@ -98,6 +98,15 @@ class AlarmScheduler(
         }
     }
 
+    /** Drops everything registered for alarms that were deleted. */
+    fun cancel(ids: List<Long>) {
+        for (id in ids) {
+            cancelAlarm(id)
+            cancelUpcoming(id)
+            Notifications.cancelUpcoming(context, id)
+        }
+    }
+
     private fun setAlarm(id: Long, at: Long, snooze: Boolean) {
         val op = firePendingIntent(id, at, snooze)
         try {
