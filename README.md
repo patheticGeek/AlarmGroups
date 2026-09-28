@@ -10,13 +10,89 @@ Grab the latest APK from **[Releases](https://github.com/patheticGeek/AlarmGroup
 
 ## Features
 
-- **Groups** with a repeat rule: once, daily, weekly on chosen days, or every N days. Alarms in a group follow it; ungrouped alarms have their own rule.
-- **Group controls**: on/off switch, *pause until* a date, *skip next day*.
-- **Overrides**: a date range that pauses any groups (and/or ungrouped alarms) or gives them a different repeat rule, e.g. *"Goa trip, Oct 3–10: Office & WFH paused, Vacation daily"*. The newest override wins where they overlap.
-- **Per alarm**: label, sound (system sounds or any audio file, with preview), volume, gradual volume increase, vibration, snooze length, ring duration (1 min … *until I stop it*) and what happens after (snooze again or stop), *skip next*.
-- **Upcoming-alarm notification** with a *Skip this one* button.
-- **Home screen widget**: next alarm plus a switch for each group.
-- **Backup/restore** of everything to a JSON file. The data is also included in Android's own backup.
+### Groups
+
+A group is a set of alarms that share one repeat schedule, e.g. *Office* on weekdays or *Vacation* every day.
+
+- **Repeat rules:** once (next occurrence, or on a chosen date), daily, weekly on chosen days, or every N days from a start date.
+- **On/off switch:** turns every alarm in the group off or on at once. Groups you only use through overrides (like *Vacation*) can stay off.
+- **Pause until…:** silences the group through a date; it resumes by itself the day after. *Resume now* ends it early.
+- **Skip next day:** skips all the group's alarms on the next day it would ring. *Undo skip* brings them back.
+- **Starter groups:** on first launch the app offers to create *Office*, *WFH*, *No work* and *Vacation*. Rename, change or delete them any time.
+- **Deleting a group** either deletes its alarms or keeps them as ungrouped alarms that carry on with the group's schedule.
+
+### Alarms
+
+- **Time, label, and group.** An alarm in a group follows the group's repeat rule. An alarm with no group has its own rule.
+- **Sound:** the default alarm sound, any system sound, or any audio file on the phone, with a preview button.
+- **Volume** (10–100%) that the alarm rings at, regardless of the phone's current alarm volume.
+- **Gradual volume increase** over 15 s to 10 min, rising evenly to the ear, or off.
+- **Vibration** on or off.
+- **Snooze length** from 1 to 60 minutes.
+- **Ring for** 1–60 minutes or *until I stop it*, and **then** either snooze and ring again or stop.
+- **Skip next:** skips only the next ring; the alarm stays on. On a one-off alarm, skipping switches it off instead.
+- **One-off alarms** switch themselves off after they ring.
+- **Delete** from the alarm's menu, with *Undo*.
+- The editor shows when the alarm will next ring with the current groups and overrides, or warns if it won't ring at all.
+
+### Overrides
+
+An override changes groups for a date range without touching their normal schedule. For each group (and for ungrouped alarms) it can **pause** it, or make it **ring on** a different repeat rule, which also switches on a group that is normally off.
+
+Example: *"Goa trip, Oct 3–10: Office and WFH paused, Vacation every day."* Before and after those dates, everything is back to normal on its own.
+
+- *Pause everything* fills in a pause for every group in one tap.
+- Overrides can be switched off without deleting them. Ended ones can be cleared in one go.
+- Where overrides overlap, the **most recently saved** one wins for the groups it changes.
+
+### Override presets
+
+A preset is an override without dates, for changes you make often, e.g. *"WFH: pause Office, WFH every day"*.
+
+- Create one under *Overrides → Presets → New preset*, or tap **Save as preset** in any override's editor.
+- **Apply** it from the Overrides tab, or from the preset chips under the next-alarm card on the Alarms screen. Pick **Today**, **Tomorrow**, **Rest of this week**, **Next 7 days** or **Pick dates…**.
+- Applying creates a normal override named after the preset, with **Undo** in the confirmation. Editing or deleting a preset doesn't affect overrides already created from it.
+
+### How the app decides whether an alarm rings on a given day
+
+1. A snooze in progress always rings.
+2. Otherwise, the newest enabled override covering that day that mentions the alarm's group (or *Ungrouped*) decides: pause, or its own repeat rule.
+3. Otherwise, a group that is off or paused through that day doesn't ring.
+4. Otherwise, the group's repeat rule (or the alarm's own, if it has no group) decides.
+5. Skipped rings are left out.
+
+### Alarms screen
+
+- **Next alarm** card: when the next alarm rings and how long until then.
+- Alarms listed under their group, with each group's current state: its repeat rule, *Off*, *Paused through…*, an override in effect, or an upcoming override (*"Goa trip pauses from Sat, Oct 3"*).
+- **Collapse** a group by tapping its header. A collapsed group shows how many alarms it has and its next ring. The top-bar button collapses or expands all groups. Collapsed groups are remembered.
+- **Quick preset chips** to apply override presets in two taps.
+- A **warning banner** if something would stop alarms ringing reliably, and a **ringing banner** to get back to a ringing alarm.
+
+### When an alarm rings
+
+- A full-screen alarm turns the screen on over the lock screen, with big **Snooze** and **Dismiss** buttons. Neither needs the phone unlocked.
+- Snooze and Dismiss are also on the notification.
+- Volume keys on the ringing screen do nothing by default, so they can't silence the alarm by accident. They can be set to snooze or dismiss instead.
+- If several alarms ring at once, they share one ringing screen and are snoozed or dismissed together.
+
+### Notifications
+
+- **Upcoming alarm:** a quiet heads-up before each alarm (1 h by default, 15 min to 3 h, or off) with **Skip this one**.
+- **Missed alarm:** if the phone was off when an alarm was due.
+- **Backup alarm:** used only if the normal ringing screen can't start (see Reliability).
+
+### Home screen widget
+
+Shows the next alarm and each group's next ring, with a switch to turn each group on or off.
+
+### Settings
+
+- **Reliability:** the status of every permission and system setting alarms depend on, each with a *Fix* button. **Test alarm** rings a throwaway alarm 10 seconds later through the same path as a real one, using your defaults, so you can lock the phone and check it wakes the screen.
+- **Appearance:** light, dark or follow system; dynamic color from your wallpaper (Android 12+).
+- **Defaults for new alarms:** sound, volume, gradual increase, vibration, snooze length, ring duration and what happens after.
+- **Behavior:** upcoming-alarm notification timing, and what the volume buttons do while ringing.
+- **Backup:** export groups, alarms, overrides, presets and settings to a JSON file, and restore from one (replaces everything). The data is also included in Android's own device backup.
 
 ## Reliability
 
@@ -75,12 +151,19 @@ Release signing comes from these repository secrets: `RELEASE_KEYSTORE_BASE64` (
 
 ```
 app/src/main/java/dev/patheticgeek/alarmgroups/
-  model/      Room entities: AlarmGroup, Alarm, ScheduleOverride, OverrideEffect, RepeatRule
+  model/      Room entities: AlarmGroup, Alarm, ScheduleOverride/OverrideEffect, OverridePreset/PresetEffect, RepeatRule
   domain/     ScheduleCalculator — pure next-ring logic (groups, overrides, pause, skip, snooze, DST)
-  data/       Room DB (device-protected), AlarmRepository, SettingsRepository, backup
+  data/       Room DB (device-protected), AlarmRepository, SettingsRepository (DataStore), backup
   alarm/      AlarmScheduler (AlarmManager), receivers, AlarmService (ringing), AlarmPlayer, notifications
-  ui/         Compose screens: alarms, editors, overrides, settings, ringing screen, health checks
+  ui/         Compose screens: alarms, alarm/group/override/preset editors, settings, ringing screen, health checks
   widget/     Glance home screen widget
 ```
 
-`ScheduleCalculator` is the heart of the app and is covered by unit tests (`app/src/test`), including DST gaps and overlaps, override precedence and clock changes. `AlarmEngineTest` runs the repository and scheduler together against Robolectric's AlarmManager.
+`ScheduleCalculator` is the heart of the app and is covered by unit tests (`app/src/test`), including DST gaps and overlaps, override precedence and clock changes. `AlarmEngineTest` runs the repository and scheduler together against Robolectric's AlarmManager. `BackupCodecTest` covers backup round trips and old backups.
+
+### Database changes
+
+The Room schema is exported to `app/schemas/`; commit the new JSON whenever the schema version changes. Upgrades must never lose alarms:
+
+- Prefer `AutoMigration` (as in v1 → v2, which added presets); write a manual `Migration` when Room can't infer one.
+- Extend `MigrationTest`, which creates a database at the old version with real data, migrates it, and reads it back. The schemas are added to debug assets only so Robolectric can load them; release builds don't include them.
