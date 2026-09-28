@@ -9,13 +9,17 @@ concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-permissions:
-  contents: read
-
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      # Needed to publish releases from master; PR tokens stay read-only.
+      contents: write
+    env:
+      BUILD_NUMBER: ${{ github.run_number }}
+      VERSION: 1.0.${{ github.run_number }}
+      IS_RELEASE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -29,21 +33,56 @@ jobs:
           # Only master writes the cache; PRs read it.
           cache-read-only: ${{ github.ref != 'refs/heads/master' }}
 
+      # Every published APK must be signed with the same key so it installs over the previous one.
+      - name: Set up release signing
+        if: env.IS_RELEASE == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then echo "::error::Release signing secrets are missing"; exit 1; fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "RELEASE_STORE_FILE=$RUNNER_TEMP/release.jks"
+            echo "RELEASE_STORE_PASSWORD=$STORE_PASSWORD"
+            echo "RELEASE_KEY_ALIAS=$KEY_ALIAS"
+            echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+
       - name: Build, test and lint
         run: ./gradlew assembleDebug assembleRelease testDebugUnitTest lintDebug --stacktrace
+
+      - name: Name APKs
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk "dist/AlarmGroups-$VERSION.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "dist/AlarmGroups-$VERSION-debug.apk"
+
+      - name: Publish release
+        if: env.IS_RELEASE == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v$VERSION" "dist/AlarmGroups-$VERSION.apk" \
+            --target "$GITHUB_SHA" \
+            --title "AlarmGroups $VERSION" \
+            --generate-notes \
+            --latest
 
       - name: Upload APKs
         uses: actions/upload-artifact@v7
         with:
-          name: apks-${{ github.sha }}
-          path: app/build/outputs/apk/**/*.apk
+          name: AlarmGroups-${{ env.VERSION }}
+          path: dist/*.apk
           retention-days: 14
 
       - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: reports-${{ github.sha }}
+          name: reports-${{ env.VERSION }}
           path: |
             app/build/reports/
             app/build/test-results/

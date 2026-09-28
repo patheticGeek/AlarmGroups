@@ -7,10 +7,17 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// Release signing: keystore.properties locally, RELEASE_* environment variables in CI.
 val keystoreProps = Properties().apply {
     val f = rootProject.file("keystore.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
+fun signingValue(prop: String, env: String): String? =
+    keystoreProps.getProperty(prop) ?: providers.environmentVariable(env).orNull?.takeIf { it.isNotBlank() }
+val releaseStoreFile = signingValue("storeFile", "RELEASE_STORE_FILE")
+
+// CI passes its run number so every published build can be installed over the previous one.
+val buildNumber = providers.environmentVariable("BUILD_NUMBER").orNull?.toIntOrNull() ?: 1
 
 android {
     namespace = "dev.patheticgeek.alarmgroups"
@@ -20,18 +27,18 @@ android {
         applicationId = "dev.patheticgeek.alarmgroups"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = buildNumber
+        versionName = "1.0.$buildNumber"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
-        if (keystoreProps.isNotEmpty()) {
+        if (releaseStoreFile != null) {
             create("release") {
-                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
-                storePassword = keystoreProps.getProperty("storePassword")
-                keyAlias = keystoreProps.getProperty("keyAlias")
-                keyPassword = keystoreProps.getProperty("keyPassword")
+                storeFile = rootProject.file(releaseStoreFile)
+                storePassword = signingValue("storePassword", "RELEASE_STORE_PASSWORD")
+                keyAlias = signingValue("keyAlias", "RELEASE_KEY_ALIAS")
+                keyPassword = signingValue("keyPassword", "RELEASE_KEY_PASSWORD")
             }
         }
     }

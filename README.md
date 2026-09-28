@@ -4,6 +4,10 @@ An Android alarm clock built around **groups**. Put alarms in groups like *Offic
 
 Material 3 (dynamic color, light/dark), Kotlin + Jetpack Compose, minSdk 26.
 
+## Download
+
+Grab the latest APK from **[Releases](https://github.com/patheticGeek/AlarmGroups/releases/latest)** and open it on your phone (allow "install unknown apps" for your browser when asked). Every push to `master` publishes a new release, signed with the same key, so newer versions install over older ones and keep your alarms.
+
 ## Features
 
 - **Groups** with a repeat rule: once, daily, weekly on chosen days, or every N days. Alarms in a group follow it; ungrouped alarms have their own rule.
@@ -60,6 +64,12 @@ keyPassword=...
 ```
 
 then `./gradlew assembleRelease` (or `bundleRelease` for Play). Without that file the release build is signed with the debug key, which is fine for personal installs.
+
+### CI
+
+`.github/workflows/build.yml` builds, tests and lints every push to `master` and every pull request, uploading the APKs and reports as artifacts. Pushes to `master` are also signed with the release key and published as a GitHub Release `v1.0.<run number>`; the run number is the `versionCode`, so each release upgrades the previous one.
+
+Release signing comes from these repository secrets: `RELEASE_KEYSTORE_BASE64` (the `.jks`, base64-encoded), `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`. **Back up the keystore and its password** — if the key is lost, no future release can install over existing ones (users would have to uninstall, losing their alarms).
 
 ## Project layout
 
