@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Alarmy</string>
+    <string name="app_name">Routine</string>
     <string name="alarm">Alarm</string>
     <string name="snooze_n_min">Snooze %d min</string>
     <string name="dismiss">Dismiss</string>

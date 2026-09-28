@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Alarmy" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.Routine" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:windowBackground">@android:color/transparent</item>
     </style>
 
     <!-- Ringing screen: shown over the lock screen. -->
-    <style name="Theme.Alarmy.Ringing" parent="Theme.Alarmy">
+    <style name="Theme.Routine.Ringing" parent="Theme.Routine">
         <item name="android:windowShowWallpaper">false</item>
     </style>
 </resources>

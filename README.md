@@ -1,4 +1,4 @@
-# Alarmy
+# Routine Alarm
 
 An Android alarm clock built around **groups**. Put alarms in groups like *Office*, *WFH*, *No work* and *Vacation*; each group owns its repeat schedule and can be switched off, paused until a date, skipped for a day, or overridden for a date range.
 
@@ -46,7 +46,7 @@ export JAVA_HOME=/path/to/jdk-21
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-The debug build installs side by side with release (`com.geek.alarmy.debug`).
+The debug build installs side by side with release (`com.geek.routine.debug`). The launcher shows it as "Routine".
 
 ### Release
 
@@ -64,7 +64,7 @@ then `./gradlew assembleRelease` (or `bundleRelease` for Play). Without that fil
 ## Project layout
 
 ```
-app/src/main/java/com/geek/alarmy/
+app/src/main/java/com/geek/routine/
   model/      Room entities: AlarmGroup, Alarm, ScheduleOverride, OverrideEffect, RepeatRule
   domain/     ScheduleCalculator — pure next-ring logic (groups, overrides, pause, skip, snooze, DST)
   data/       Room DB (device-protected), AlarmRepository, SettingsRepository, backup

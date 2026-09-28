@@ -13,11 +13,11 @@ val keystoreProps = Properties().apply {
 }
 
 android {
-    namespace = "com.geek.alarmy"
+    namespace = "com.geek.routine"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.geek.alarmy"
+        applicationId = "com.geek.routine"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
