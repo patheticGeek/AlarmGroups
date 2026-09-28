@@ -1,4 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Alarmy</string>
+    <string name="alarm">Alarm</string>
+    <string name="snooze_n_min">Snooze %d min</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="skip_this_one">Skip this one</string>
+    <string name="upcoming_alarm">Upcoming alarm · %s</string>
+    <string name="missed_alarm">Missed alarm · %s</string>
+    <string name="missed_alarm_text">Your phone was off when this alarm was due.</string>
+    <string name="tap_to_open_alarm">Tap to open the alarm</string>
+
+    <string name="channel_ringing">Ringing alarms</string>
+    <string name="channel_ringing_desc">Shown while an alarm is ringing. Keep this on.</string>
+    <string name="channel_upcoming">Upcoming alarms</string>
+    <string name="channel_upcoming_desc">A heads-up before an alarm, with a button to skip it.</string>
+    <string name="channel_missed">Missed alarms</string>
+    <string name="channel_missed_desc">Alarms that couldn\'t ring because the phone was off.</string>
+    <string name="channel_fallback">Backup alarm</string>
+    <string name="channel_fallback_desc">Used only if the normal alarm can\'t start. Keep this on and loud.</string>
 </resources>

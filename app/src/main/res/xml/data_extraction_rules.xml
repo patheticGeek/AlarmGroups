@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Alarms live in device-protected storage; include it in cloud backup and device transfer. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="device_database" path="." />
+        <include domain="device_file" path="datastore/" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="device_database" path="." />
+        <include domain="device_file" path="datastore/" />
+    </device-transfer>
+</data-extraction-rules>

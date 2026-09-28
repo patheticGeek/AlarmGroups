@@ -31,7 +31,8 @@ data class Snapshot(
  */
 class AlarmRepository(
     private val db: AlarmDatabase,
-    private val clock: Clock = Clock.systemDefaultZone(),
+    // A provider, not a Clock: the system zone must be re-read after a timezone change.
+    private val clock: () -> Clock = { Clock.systemDefaultZone() },
     private val onChanged: suspend () -> Unit = {},
 ) {
     private val alarms = db.alarmDao()
@@ -85,7 +86,7 @@ class AlarmRepository(
         val snap = snapshot()
         val a = snap.alarms.firstOrNull { it.id == id } ?: return
         val next = ScheduleCalculator.nextTrigger(
-            a.copy(snoozedUntil = null), snap.groupOf(a), snap.overrides, clock.instant(), clock.zone,
+            a.copy(snoozedUntil = null), snap.groupOf(a), snap.overrides, clock().instant(), clock().zone,
         ) ?: return
         alarms.update(a.copy(skipUntil = next.toEpochMilli(), snoozedUntil = null))
         onChanged()
@@ -121,7 +122,7 @@ class AlarmRepository(
         val a = snap.alarms.firstOrNull { it.id == id } ?: return
         val fired = a.lastFiredAt
         val oneOff = fired != null && ScheduleCalculator.isOneOff(
-            Instant.ofEpochMilli(fired).atZone(clock.zone).toLocalDate(), a, snap.groupOf(a), snap.overrides,
+            Instant.ofEpochMilli(fired).atZone(clock().zone).toLocalDate(), a, snap.groupOf(a), snap.overrides,
         )
         alarms.update(a.copy(snoozedUntil = null, enabled = a.enabled && !oneOff))
         onChanged()
@@ -132,7 +133,7 @@ class AlarmRepository(
         val snap = snapshot()
         val a = snap.alarms.firstOrNull { it.id == id } ?: return
         val oneOff = ScheduleCalculator.isOneOff(
-            Instant.ofEpochMilli(occurrence).atZone(clock.zone).toLocalDate(), a, snap.groupOf(a), snap.overrides,
+            Instant.ofEpochMilli(occurrence).atZone(clock().zone).toLocalDate(), a, snap.groupOf(a), snap.overrides,
         )
         alarms.update(a.copy(lastFiredAt = occurrence, snoozedUntil = null, enabled = a.enabled && !oneOff))
         onChanged()
@@ -170,13 +171,13 @@ class AlarmRepository(
     suspend fun skipNextGroupDay(id: Long) {
         val snap = snapshot()
         val g = snap.group(id) ?: return
-        val now = clock.instant()
+        val now = clock().instant()
         val next = snap.alarms.filter { it.groupId == id }
             .mapNotNull {
-                ScheduleCalculator.nextTrigger(it.copy(snoozedUntil = null), g, snap.overrides, now, clock.zone)
+                ScheduleCalculator.nextTrigger(it.copy(snoozedUntil = null), g, snap.overrides, now, clock().zone)
             }
             .minOrNull() ?: return
-        val endOfDay = next.atZone(clock.zone).toLocalDate().plusDays(1).atStartOfDay(clock.zone)
+        val endOfDay = next.atZone(clock().zone).toLocalDate().plusDays(1).atStartOfDay(clock().zone)
             .toInstant().toEpochMilli() - 1
         groups.update(g.copy(skipUntil = endOfDay))
         onChanged()
