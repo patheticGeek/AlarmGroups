@@ -39,7 +39,12 @@ data class GroupSection(
     val notice: String?,
     val isSkipping: Boolean,
     val alarms: List<AlarmItem>,
-)
+    val collapsed: Boolean = false,
+) {
+    /** Key used to remember whether this section is collapsed. */
+    val key: Long get() = group?.id ?: UNGROUPED_ID
+    val nextRing: Instant? get() = alarms.mapNotNull { it.next }.minOrNull()
+}
 
 data class NextAlarm(val alarm: Alarm, val at: Instant)
 
@@ -63,10 +68,10 @@ class AlarmsViewModel(private val c: AppContainer) : ViewModel() {
 
     val state: StateFlow<AlarmsUiState> =
         combine(repo.observeSnapshot(), c.settings.settings, ticker) { snap, settings, now ->
-            build(snap, now, showStarter = !settings.starterGroupsOffered && snap.groups.isEmpty())
+            build(snap, now, showStarter = !settings.starterGroupsOffered && snap.groups.isEmpty(), settings.collapsedGroups)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AlarmsUiState())
 
-    private fun build(snap: Snapshot, now: Instant, showStarter: Boolean): AlarmsUiState {
+    private fun build(snap: Snapshot, now: Instant, showStarter: Boolean, collapsed: Set<Long>): AlarmsUiState {
         val zone = ZoneId.systemDefault()
         val today = now.atZone(zone).toLocalDate()
 
@@ -86,6 +91,7 @@ class AlarmsViewModel(private val c: AppContainer) : ViewModel() {
                 notice = groupNotice(g.id, snap.overrides, today),
                 isSkipping = (g.skipUntil ?: 0) > now.toEpochMilli(),
                 alarms = snap.alarms.filter { it.groupId == g.id }.map(::item),
+                collapsed = g.id in collapsed,
             )
         }
         val loose = snap.alarms.filter { it.groupId == null || snap.groupOf(it) == null }
@@ -95,6 +101,7 @@ class AlarmsViewModel(private val c: AppContainer) : ViewModel() {
             notice = groupNotice(UNGROUPED_ID, snap.overrides, today),
             isSkipping = false,
             alarms = loose.map(::item),
+            collapsed = UNGROUPED_ID in collapsed,
         )
         val all = sections.flatMap { it.alarms } + ungrouped.alarms
         val next = all.filter { it.next != null }.minByOrNull { it.next!! }?.let { NextAlarm(it.alarm, it.next!!) }
@@ -157,6 +164,20 @@ class AlarmsViewModel(private val c: AppContainer) : ViewModel() {
     fun createStarterGroups() = launch {
         repo.createStarterGroups()
         c.settings.update { it.copy(starterGroupsOffered = true) }
+    }
+
+    fun toggleCollapsed(key: Long) = launch {
+        c.settings.update { s ->
+            s.copy(collapsedGroups = if (key in s.collapsedGroups) s.collapsedGroups - key else s.collapsedGroups + key)
+        }
+    }
+
+    /** Collapses every section, or expands all if they're all collapsed already. */
+    fun toggleCollapseAll() = launch {
+        val keys = state.value.sections.map { it.key }.toSet()
+        c.settings.update { s ->
+            s.copy(collapsedGroups = if (s.collapsedGroups.containsAll(keys)) emptySet() else keys)
+        }
     }
 
     fun dismissStarterGroups() = launch { c.settings.update { it.copy(starterGroupsOffered = true) } }

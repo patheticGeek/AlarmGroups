@@ -110,7 +110,8 @@ object Notifications {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(true)
             .setAutoCancel(false)
-            .setSilent(true)
+            // Must NOT be silent: Android only launches a full-screen intent for a notification that
+            // alerts. The channel has no sound/vibration of its own; the service plays the alarm.
             .setFullScreenIntent(fullScreen, true)
             .setContentIntent(fullScreen)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)

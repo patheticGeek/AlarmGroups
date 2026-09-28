@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import dev.patheticgeek.alarmgroups.model.Alarm
 import dev.patheticgeek.alarmgroups.model.TimeoutAction
@@ -27,6 +28,8 @@ data class Settings(
     val upcomingMinutes: Int = 60,
     val volumeButtons: VolumeButtonAction = VolumeButtonAction.NOTHING,
     val starterGroupsOffered: Boolean = false,
+    /** Groups folded away on the alarms screen (group ids; 0 = ungrouped). */
+    val collapsedGroups: Set<Long> = emptySet(),
     // Defaults for new alarms.
     val defaultRingtoneUri: String? = null,
     val defaultRingtoneTitle: String? = null,
@@ -64,6 +67,7 @@ class SettingsRepository(context: Context, fileName: String = "settings") {
         val upcoming = intPreferencesKey("upcoming_minutes")
         val volumeButtons = stringPreferencesKey("volume_buttons")
         val starterOffered = booleanPreferencesKey("starter_groups_offered")
+        val collapsed = stringSetPreferencesKey("collapsed_groups")
         val ringtoneUri = stringPreferencesKey("default_ringtone_uri")
         val ringtoneTitle = stringPreferencesKey("default_ringtone_title")
         val volume = intPreferencesKey("default_volume")
@@ -84,6 +88,7 @@ class SettingsRepository(context: Context, fileName: String = "settings") {
             upcomingMinutes = p[Keys.upcoming] ?: d.upcomingMinutes,
             volumeButtons = p[Keys.volumeButtons].toEnum(d.volumeButtons),
             starterGroupsOffered = p[Keys.starterOffered] ?: d.starterGroupsOffered,
+            collapsedGroups = p[Keys.collapsed].orEmpty().mapNotNull(String::toLongOrNull).toSet(),
             defaultRingtoneUri = p[Keys.ringtoneUri],
             defaultRingtoneTitle = p[Keys.ringtoneTitle],
             defaultVolume = p[Keys.volume] ?: d.defaultVolume,
@@ -105,6 +110,7 @@ class SettingsRepository(context: Context, fileName: String = "settings") {
             p[Keys.upcoming] = s.upcomingMinutes
             p[Keys.volumeButtons] = s.volumeButtons.name
             p[Keys.starterOffered] = s.starterGroupsOffered
+            p[Keys.collapsed] = s.collapsedGroups.map(Long::toString).toSet()
             s.defaultRingtoneUri?.let { p[Keys.ringtoneUri] = it } ?: p.remove(Keys.ringtoneUri)
             s.defaultRingtoneTitle?.let { p[Keys.ringtoneTitle] = it } ?: p.remove(Keys.ringtoneTitle)
             p[Keys.volume] = s.defaultVolume

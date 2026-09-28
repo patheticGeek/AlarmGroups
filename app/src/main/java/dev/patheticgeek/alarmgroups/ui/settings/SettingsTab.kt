@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AlarmOn
 import androidx.compose.material.icons.filled.Brightness6
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
@@ -74,6 +75,8 @@ import java.time.LocalDate
 class SettingsViewModel(private val c: AppContainer) : ViewModel() {
     val settings: StateFlow<Settings?> = c.settings.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
     val backup = BackupManager(c.app, c.repository, c.settings)
+
+    fun testAlarm() = c.scheduler.scheduleTest()
 
     fun update(transform: (Settings) -> Settings) {
         viewModelScope.launch {
@@ -155,6 +158,18 @@ fun SettingsTab(
                 },
             )
         }
+
+        ListItem(
+            modifier = Modifier.clickable {
+                vm.testAlarm()
+                scope.launch { snackbar.showSnackbar("Test alarm in 10 seconds — lock your phone now") }
+            },
+            leadingContent = { Icon(Icons.Filled.AlarmOn, contentDescription = null) },
+            headlineContent = { Text("Test alarm") },
+            supportingContent = {
+                Text("Rings in 10 seconds with your default alarm settings. Lock the phone to check it wakes the screen.")
+            },
+        )
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
         Section("Appearance")

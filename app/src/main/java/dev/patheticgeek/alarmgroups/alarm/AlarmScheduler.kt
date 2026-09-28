@@ -98,6 +98,29 @@ class AlarmScheduler(
         }
     }
 
+    /**
+     * Rings a throwaway test alarm after [delayMs], through the exact same path as a real one
+     * (AlarmManager → receiver → foreground service → full-screen notification). Nothing is saved.
+     */
+    fun scheduleTest(delayMs: Long = 10_000) {
+        val at = System.currentTimeMillis() + delayMs
+        val op = PendingIntent.getBroadcast(
+            context, 0,
+            Intent(context, AlarmReceiver::class.java)
+                .setAction(AlarmReceiver.ACTION_FIRE)
+                .setData("alarmgroups://alarm/test".toUri())
+                .putExtra(AlarmReceiver.EXTRA_ALARM_ID, AlarmService.TEST_ALARM_ID)
+                .putExtra(AlarmReceiver.EXTRA_TRIGGER_AT, at)
+                .addFlags(Intent.FLAG_RECEIVER_FOREGROUND),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        if (canScheduleExact()) {
+            am.setAlarmClock(AlarmManager.AlarmClockInfo(at, showIntent()), op)
+        } else {
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, op)
+        }
+    }
+
     /** Drops everything registered for alarms that were deleted. */
     fun cancel(ids: List<Long>) {
         for (id in ids) {

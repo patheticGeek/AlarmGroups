@@ -1,6 +1,6 @@
-# Lock In (Android alarm app with groups)
+# AlarmGroups (Android alarm app with groups)
 
-App name "Lock In", package `com.geek.lockin` (2026-09-29). User wanted a Gen Z name; rejected "Alarmy" (existing app) and "Routine Alarm". Repo folder is still ~/Projects/alarmy.
+App name "AlarmGroups", package `dev.patheticgeek.alarmgroups` (chosen by user 2026-09-29, after rejecting Alarmy / Routine Alarm / Lock In). Repo folder is still ~/Projects/alarmy.
 
 ## User preferences
 - Work autonomously step by step; don't wait for approval between steps.

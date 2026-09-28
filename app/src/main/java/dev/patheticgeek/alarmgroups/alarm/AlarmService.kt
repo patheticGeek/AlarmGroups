@@ -12,6 +12,7 @@ import android.util.Log
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import dev.patheticgeek.alarmgroups.AlarmGroupsApp
+import dev.patheticgeek.alarmgroups.R
 import dev.patheticgeek.alarmgroups.model.Alarm
 import dev.patheticgeek.alarmgroups.model.TimeoutAction
 import kotlinx.coroutines.CoroutineScope
@@ -82,6 +83,10 @@ class AlarmService : Service() {
     }
 
     private suspend fun onAlarmFired(id: Long, triggerAt: Long, isSnooze: Boolean) {
+        if (id == TEST_ALARM_ID) {
+            if (id !in ringing) startRinging(testAlarm())
+            return
+        }
         val repo = AlarmGroupsApp.container(this).repository
         val alarm = withContext(Dispatchers.IO) { repo.alarm(id) }
         if (alarm == null || !alarm.enabled) {
@@ -103,6 +108,11 @@ class AlarmService : Service() {
             return
         }
         Log.i(TAG, "Ringing alarm $id (snooze=$isSnooze)")
+        startRinging(alarm)
+    }
+
+    private fun startRinging(alarm: Alarm) {
+        val id = alarm.id
         ringing[id] = alarm
         RingingState.set(ringing.values.toList())
         goForeground()
@@ -126,6 +136,7 @@ class AlarmService : Service() {
         timeoutJob?.cancel()
         withContext(NonCancellable + Dispatchers.IO) {
             for (a in alarms) {
+                if (a.id == TEST_ALARM_ID) continue // Not in the database.
                 when (action) {
                     TimeoutAction.SNOOZE ->
                         repo.snooze(a.id, System.currentTimeMillis() + a.snoozeMinutes.coerceAtLeast(1) * 60_000L)
@@ -136,6 +147,14 @@ class AlarmService : Service() {
         ringing.clear()
         RingingState.set(emptyList())
         shutdown()
+    }
+
+    /** A throwaway alarm using the defaults for new alarms, so the test reflects real settings. */
+    private suspend fun testAlarm(): Alarm {
+        val now = java.time.LocalTime.now()
+        return AlarmGroupsApp.container(this).settings.current()
+            .newAlarm(now.hour, now.minute, groupId = null)
+            .copy(id = TEST_ALARM_ID, label = getString(R.string.test_alarm), ringMinutes = 2, timeoutAction = TimeoutAction.DISMISS)
     }
 
     private fun shutdown() {
@@ -177,6 +196,8 @@ class AlarmService : Service() {
 
     companion object {
         private const val TAG = "AlarmService"
+        /** Id of the throwaway alarm rung by "Test alarm"; never stored. */
+        const val TEST_ALARM_ID = -2L
         const val ACTION_START = "dev.patheticgeek.alarmgroups.action.RING"
         const val ACTION_SNOOZE = "dev.patheticgeek.alarmgroups.action.SNOOZE"
         const val ACTION_DISMISS = "dev.patheticgeek.alarmgroups.action.DISMISS"

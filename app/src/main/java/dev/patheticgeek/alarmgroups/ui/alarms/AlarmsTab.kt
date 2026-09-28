@@ -1,6 +1,10 @@
 package dev.patheticgeek.alarmgroups.ui.alarms
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -125,8 +129,10 @@ fun AlarmsTab(
                     onSkip = { g?.let { vm.skipGroup(it.id) } },
                     onClearSkip = { g?.let { vm.clearGroupSkip(it.id) } },
                     onDelete = { deleteGroup = g },
+                    onToggleCollapsed = { vm.toggleCollapsed(section.key) },
                 )
             }
+            if (section.collapsed) return@forEach
             items(section.alarms, key = { "alarm-${it.alarm.id}" }) { item ->
                 AlarmRow(
                     item = item,
@@ -258,17 +264,30 @@ private fun GroupHeader(
     onSkip: () -> Unit,
     onClearSkip: () -> Unit,
     onDelete: () -> Unit,
+    onToggleCollapsed: () -> Unit,
 ) {
+    val context = LocalContext.current
     val g = section.group
     var menu by remember { mutableStateOf(false) }
+    val chevron by animateFloatAsState(if (section.collapsed) -90f else 0f, label = "chevron")
     Column(Modifier.padding(top = 16.dp).animateContentSize()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(
+            Row(
                 Modifier
                     .weight(1f)
-                    .clickable(enabled = g != null, onClick = onEdit)
+                    .clip(MaterialTheme.shapes.small)
+                    .clickable(onClickLabel = if (section.collapsed) "Expand" else "Collapse", onClick = onToggleCollapsed)
                     .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                Icon(
+                    Icons.Filled.ExpandMore,
+                    contentDescription = if (section.collapsed) "Collapsed" else "Expanded",
+                    modifier = Modifier.rotate(chevron),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.width(4.dp))
+                Column {
                 Text(
                     g?.name ?: "Ungrouped",
                     style = MaterialTheme.typography.titleLarge,
@@ -281,6 +300,18 @@ private fun GroupHeader(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (section.collapsed) {
+                    val count = section.alarms.size
+                    Text(
+                        buildString {
+                            append(if (count == 1) "1 alarm" else "$count alarms")
+                            section.nextRing?.let { append(" · next ${TimeFormat.whenString(context, it)}") }
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                }
             }
             IconButton(onClick = onAdd) { Icon(Icons.Filled.Add, contentDescription = "Add alarm to ${g?.name ?: "Ungrouped"}") }
             if (g != null) {

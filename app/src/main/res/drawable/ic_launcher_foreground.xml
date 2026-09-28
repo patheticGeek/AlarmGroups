@@ -1,16 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Two alarm clocks: a group. Kept inside the 66dp adaptive-icon safe zone. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     <group
-        android:translateX="30"
-        android:translateY="30">
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.93"
+        android:scaleY="0.93">
+        <!-- Back clock -->
         <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M22,5.72l-4.6,-3.86 -1.29,1.53 4.6,3.86L22,5.72zM7.88,3.39L6.6,1.86 2,5.71l1.29,1.53 4.59,-3.85zM12.5,8L11,8v6l4.75,2.85 0.75,-1.23 -4,-2.37L12.5,8zM12,4c-4.97,0 -9,4.03 -9,9s4.02,9 9,9c4.97,0 9,-4.03 9,-9s-4.03,-9 -9,-9zM12,20c-3.87,0 -7,-3.13 -7,-7s3.13,-7 7,-7 7,3.13 7,7 -3.13,7 -7,7z"
-            android:scaleX="2"
-            android:scaleY="2" />
+            android:pathData="M30.5,30 L35.5,25.5 M48.5,25.5 L53.5,30 M29,43 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0 M42,36.5 L42,43 L46.5,45.5"
+            android:strokeWidth="4"
+            android:strokeAlpha="0.55"
+            android:strokeColor="#FFFFFF"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <!-- Occludes the back clock behind the front one -->
+        <path
+            android:fillColor="#3F4A8A"
+            android:pathData="M40,61 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0" />
+        <!-- Front clock -->
+        <path
+            android:pathData="M42.5,43.5 L49,37.5 M71,37.5 L77.5,43.5 M42,61 a18,18 0 1,0 36,0 a18,18 0 1,0 -36,0 M60,50 L60,61 L67.5,65.5 M47.5,76 L44,80 M72.5,76 L76,80"
+            android:strokeWidth="5"
+            android:strokeColor="#FFFFFF"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
     </group>
 </vector>

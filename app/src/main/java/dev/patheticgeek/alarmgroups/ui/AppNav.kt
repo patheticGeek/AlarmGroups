@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.UnfoldLess
 import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.EventRepeat
 import androidx.compose.material.icons.outlined.Settings
@@ -140,6 +141,9 @@ private fun Home(
                 scrollBehavior = scroll,
                 actions = {
                     if (tab == Tab.ALARMS) {
+                        IconButton(onClick = alarmsVm::toggleCollapseAll) {
+                            Icon(Icons.Filled.UnfoldLess, contentDescription = "Collapse or expand all groups")
+                        }
                         IconButton(onClick = { onEditGroup(0) }) {
                             Icon(Icons.Filled.CreateNewFolder, contentDescription = "New group")
                         }
