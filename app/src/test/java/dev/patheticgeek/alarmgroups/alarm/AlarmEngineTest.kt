@@ -271,4 +271,20 @@ class AlarmEngineTest {
         assertNull(repo.preset(onlyOffice))
         assertEquals(listOf(gym), repo.preset(both)!!.effects.map { it.targetGroupId })
     }
+
+    @Test
+    fun `skipping a group through a day skips its remaining alarms that day and never shortens a skip`() = runBlocking {
+        val g = repo.saveGroup(AlarmGroup(name = "Office", repeat = RepeatRule.Daily))
+        repo.saveAlarm(Alarm(groupId = g, hour = 7, minute = 0))
+        repo.saveAlarm(Alarm(groupId = g, hour = 21, minute = 0))
+        val other = repo.saveAlarm(Alarm(hour = 7, minute = 15, repeat = RepeatRule.Daily))
+        // From the upcoming-alarm notification for tomorrow's 07:00 ring.
+        repo.skipGroupThrough(g, LocalDate.of(2026, 9, 29))
+        // Office resumes on the 30th; the ungrouped alarm is unaffected.
+        assertEquals(listOf(at(28, 7, 15), at(30, 7, 0), at(30, 21, 0)), scheduledTimes())
+        assertNotNull(repo.alarm(other))
+        // An earlier date doesn't cut the existing skip short.
+        repo.skipGroupThrough(g, LocalDate.of(2026, 9, 28))
+        assertEquals(listOf(at(28, 7, 15), at(30, 7, 0), at(30, 21, 0)), scheduledTimes())
+    }
 }

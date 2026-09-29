@@ -12,11 +12,14 @@ import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.provider.Settings
 import androidx.core.net.toUri
+import java.time.Instant
+import java.time.ZoneId
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import dev.patheticgeek.alarmgroups.R
 import dev.patheticgeek.alarmgroups.model.Alarm
+import dev.patheticgeek.alarmgroups.model.AlarmGroup
 import dev.patheticgeek.alarmgroups.ui.MainActivity
 import dev.patheticgeek.alarmgroups.ui.ringing.RingingActivity
 import dev.patheticgeek.alarmgroups.util.TimeFormat
@@ -153,7 +156,11 @@ object Notifications {
 
     fun cancelFallback(context: Context) = NotificationManagerCompat.from(context).cancel(ID_FALLBACK)
 
-    fun showUpcoming(context: Context, alarm: Alarm, triggerAt: Long) {
+    /**
+     * Heads-up before an alarm, with "Skip this one" and, for an alarm in a group, a button to skip the
+     * whole group for that alarm's day (e.g. "Skip Office today").
+     */
+    fun showUpcoming(context: Context, alarm: Alarm, group: AlarmGroup?, triggerAt: Long) {
         if (!canPost(context)) return
         val skip = PendingIntent.getBroadcast(
             context, 0,
@@ -166,7 +173,7 @@ object Notifications {
         val n = NotificationCompat.Builder(context, CHANNEL_UPCOMING)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle(context.getString(R.string.upcoming_alarm, TimeFormat.time(context, alarm.hour, alarm.minute)))
-            .setContentText(alarm.label.ifBlank { context.getString(R.string.alarm) })
+            .setContentText(listOfNotNull(group?.name, alarm.label.ifBlank { null }).joinToString(" · ").ifEmpty { context.getString(R.string.alarm) })
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(openApp(context))
             .setWhen(triggerAt)
@@ -174,9 +181,31 @@ object Notifications {
             .setOnlyAlertOnce(true)
             .setTimeoutAfter((triggerAt - System.currentTimeMillis()).coerceAtLeast(1_000))
             .addAction(0, context.getString(R.string.skip_this_one), skip)
+            .apply {
+                if (group == null) return@apply
+                val day = Instant.ofEpochMilli(triggerAt).atZone(ZoneId.systemDefault()).toLocalDate()
+                val skipGroup = PendingIntent.getBroadcast(
+                    context, 0,
+                    Intent(context, AlarmReceiver::class.java)
+                        .setAction(AlarmReceiver.ACTION_SKIP_GROUP_DAY)
+                        .setData("alarmgroups://skip-group/${group.id}/${day.toEpochDay()}".toUri())
+                        .putExtra(AlarmReceiver.EXTRA_ALARM_ID, alarm.id)
+                        .putExtra(AlarmReceiver.EXTRA_GROUP_ID, group.id)
+                        .putExtra(AlarmReceiver.EXTRA_EPOCH_DAY, day.toEpochDay()),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+                addAction(
+                    0,
+                    context.getString(R.string.skip_group_day, group.name, TimeFormat.day(day).lowercaseIfRelative()),
+                    skipGroup,
+                )
+            }
             .build()
         post(context, UPCOMING_BASE + alarm.id.toInt(), n)
     }
+
+    /** "Today"/"Tomorrow" read better mid-sentence in lower case; dates stay as they are. */
+    private fun String.lowercaseIfRelative() = if (this == "Today" || this == "Tomorrow") lowercase() else "on $this"
 
     fun cancelUpcoming(context: Context, alarmId: Long) =
         NotificationManagerCompat.from(context).cancel(UPCOMING_BASE + alarmId.toInt())

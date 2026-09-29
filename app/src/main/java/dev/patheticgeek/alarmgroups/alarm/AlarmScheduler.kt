@@ -60,7 +60,7 @@ class AlarmScheduler(
                 }
                 remindAt <= now.toEpochMilli() -> {
                     cancelUpcoming(alarm.id)
-                    Notifications.showUpcoming(context, alarm, at!!)
+                    Notifications.showUpcoming(context, alarm, snap.groupOf(alarm), at!!)
                 }
                 else -> {
                     setUpcoming(alarm.id, remindAt)

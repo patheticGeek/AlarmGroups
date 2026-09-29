@@ -193,9 +193,14 @@ class AlarmRepository(
                 ScheduleCalculator.nextTrigger(it.copy(snoozedUntil = null), g, snap.overrides, now, clock().zone)
             }
             .minOrNull() ?: return
-        val endOfDay = next.atZone(clock().zone).toLocalDate().plusDays(1).atStartOfDay(clock().zone)
-            .toInstant().toEpochMilli() - 1
-        groups.update(g.copy(skipUntil = endOfDay))
+        skipGroupThrough(id, next.atZone(clock().zone).toLocalDate())
+    }
+
+    /** Skips every alarm in the group from now through the end of [date]. Never shortens an existing skip. */
+    suspend fun skipGroupThrough(id: Long, date: LocalDate) {
+        val g = groups.get(id) ?: return
+        val endOfDay = date.plusDays(1).atStartOfDay(clock().zone).toInstant().toEpochMilli() - 1
+        groups.update(g.copy(skipUntil = maxOf(endOfDay, g.skipUntil ?: Long.MIN_VALUE)))
         onChanged()
     }
 

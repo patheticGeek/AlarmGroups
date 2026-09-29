@@ -6,6 +6,8 @@
     <string name="snooze_n_min">Snooze %d min</string>
     <string name="dismiss">Dismiss</string>
     <string name="skip_this_one">Skip this one</string>
+    <!-- e.g. "Skip all Office today", "Skip all Office on Wed, Oct 7" -->
+    <string name="skip_group_day">Skip all %1$s %2$s</string>
     <string name="upcoming_alarm">Upcoming alarm · %s</string>
     <string name="missed_alarm">Missed alarm · %s</string>
     <string name="missed_alarm_text">Your phone was off when this alarm was due.</string>
