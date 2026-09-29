@@ -1,0 +1,7 @@
+[
+  {
+    "id": "6f86510f-1d29-47a6-a29d-d8e580f684c9",
+    "name": "install",
+    "command": "cd /home/geek/Projects/alarmy && JAVA_HOME=\"$HOME/.local/share/jdks/jdk-21.0.12.1+1\" ./gradlew installDebug --console=plain && adb shell am start -n dev.patheticgeek.alarmgroups.debug/dev.patheticgeek.alarmgroups.ui.MainActivity"
+  }
+]
