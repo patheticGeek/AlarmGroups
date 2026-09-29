@@ -19,7 +19,7 @@ A group is a set of alarms that share one repeat schedule, e.g. *Office* on week
 - **Pause until…:** silences the group through a date; it resumes by itself the day after. *Resume now* ends it early.
 - **Skip all alarms today/tomorrow/on a date:** skips every alarm in the group on the next day it would ring; the menu names that day. The group then shows *"All alarms skipped today"*, and *Stop skipping* brings them back.
 - **Starter groups:** on first launch the app offers to create *Office*, *WFH*, *No work* and *Vacation*. Rename, change or delete them any time.
-- **Deleting a group** either deletes its alarms or keeps them as ungrouped alarms that carry on with the group's schedule.
+- **Deleting a group** deletes its alarms too.
 
 ### Alarms
 

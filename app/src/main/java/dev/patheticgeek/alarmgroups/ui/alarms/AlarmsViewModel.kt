@@ -162,7 +162,7 @@ class AlarmsViewModel(private val c: AppContainer) : ViewModel() {
     fun pauseGroupThrough(id: Long, date: LocalDate?) = launch { repo.pauseGroupThrough(id, date) }
     fun skipGroup(id: Long) = launch { repo.skipNextGroupDay(id) }
     fun clearGroupSkip(id: Long) = launch { repo.clearGroupSkip(id) }
-    fun deleteGroup(id: Long, deleteAlarms: Boolean) = launch { repo.deleteGroup(id, deleteAlarms) }
+    fun deleteGroup(id: Long) = launch { repo.deleteGroup(id) }
 
     fun createStarterGroups() = launch {
         repo.createStarterGroups()

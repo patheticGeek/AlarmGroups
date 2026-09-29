@@ -44,7 +44,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -202,7 +201,7 @@ fun AlarmsTab(
     applying?.let { p ->
         ApplyPresetDialog(p, onDismiss = { applying = null }, onApply = { start, end -> onApplyPreset(p, start, end) })
     }
-    deleteGroup?.let { g -> DeleteGroupDialog(g, onDismiss = { deleteGroup = null }, onDelete = { vm.deleteGroup(g.id, it) }) }
+    deleteGroup?.let { g -> DeleteGroupDialog(g, onDismiss = { deleteGroup = null }, onDelete = { vm.deleteGroup(g.id) }) }
 }
 
 @Composable
@@ -476,31 +475,13 @@ private fun StatusLine(item: AlarmItem, now: Instant) {
 }
 
 @Composable
-private fun DeleteGroupDialog(group: AlarmGroup, onDismiss: () -> Unit, onDelete: (deleteAlarms: Boolean) -> Unit) {
-    var deleteAlarms by remember { mutableStateOf(false) }
+private fun DeleteGroupDialog(group: AlarmGroup, onDismiss: () -> Unit, onDelete: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Delete \"${group.name}\"?") },
-        text = {
-            Column {
-                Row(
-                    Modifier.fillMaxWidth().clickable { deleteAlarms = false },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    RadioButton(selected = !deleteAlarms, onClick = { deleteAlarms = false })
-                    Text("Keep its alarms as ungrouped (they keep ringing ${group.repeat.describe().lowercase()})")
-                }
-                Row(
-                    Modifier.fillMaxWidth().clickable { deleteAlarms = true },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    RadioButton(selected = deleteAlarms, onClick = { deleteAlarms = true })
-                    Text("Delete its alarms too")
-                }
-            }
-        },
+        text = { Text("The group and all of its alarms will be deleted.") },
         confirmButton = {
-            TextButton(onClick = { onDelete(deleteAlarms); onDismiss() }) {
+            TextButton(onClick = { onDelete(); onDismiss() }) {
                 Text("Delete", color = MaterialTheme.colorScheme.error)
             }
         },

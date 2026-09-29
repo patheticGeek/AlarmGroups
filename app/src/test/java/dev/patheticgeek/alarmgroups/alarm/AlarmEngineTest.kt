@@ -177,21 +177,10 @@ class AlarmEngineTest {
     }
 
     @Test
-    fun `deleting a group can keep its alarms with the group's schedule`() = runBlocking {
-        val g = repo.saveGroup(AlarmGroup(name = "Office", repeat = RepeatRule.weekly(RepeatRule.WEEKDAYS)))
-        val id = repo.saveAlarm(Alarm(groupId = g, hour = 7, minute = 0))
-        repo.deleteGroup(g, deleteAlarms = false)
-        val a = repo.alarm(id)!!
-        assertNull(a.groupId)
-        assertEquals(RepeatRule.weekly(RepeatRule.WEEKDAYS), a.repeat)
-        assertEquals(listOf(at(28, 7, 0)), scheduledTimes())
-    }
-
-    @Test
-    fun `deleting a group with its alarms cancels them`() = runBlocking {
+    fun `deleting a group deletes and cancels its alarms`() = runBlocking {
         val g = repo.saveGroup(AlarmGroup(name = "Office", repeat = RepeatRule.Daily))
         val id = repo.saveAlarm(Alarm(groupId = g, hour = 7, minute = 0))
-        repo.deleteGroup(g, deleteAlarms = true)
+        repo.deleteGroup(g)
         assertNull(repo.alarm(id))
         assertTrue(scheduledTimes().isEmpty())
     }
@@ -267,7 +256,7 @@ class AlarmEngineTest {
                 PresetEffect(targetGroupId = gym, action = OverrideAction.PAUSE),
             ),
         )
-        repo.deleteGroup(office, deleteAlarms = true)
+        repo.deleteGroup(office)
         assertNull(repo.preset(onlyOffice))
         assertEquals(listOf(gym), repo.preset(both)!!.effects.map { it.targetGroupId })
     }

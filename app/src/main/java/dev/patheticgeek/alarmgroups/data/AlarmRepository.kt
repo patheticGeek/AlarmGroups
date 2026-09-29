@@ -216,21 +216,12 @@ class AlarmRepository(
         onChanged()
     }
 
-    /**
-     * Deletes a group. Its alarms are either deleted too or kept as ungrouped alarms, in which case
-     * they take over the group's repeat rule so they keep ringing on the same days.
-     */
-    suspend fun deleteGroup(id: Long, deleteAlarms: Boolean) {
-        val removed = if (deleteAlarms) alarms.inGroup(id).map { it.id } else emptyList()
+    /** Deletes a group together with its alarms. */
+    suspend fun deleteGroup(id: Long) {
+        val removed = alarms.inGroup(id).map { it.id }
         db.withTransaction {
             val g = groups.get(id) ?: return@withTransaction
-            if (deleteAlarms) {
-                alarms.deleteInGroup(id)
-            } else {
-                alarms.inGroup(id).forEach {
-                    alarms.update(it.copy(groupId = null, repeat = g.repeat, enabled = it.enabled && g.enabled))
-                }
-            }
+            alarms.deleteInGroup(id)
             overrides.deleteEffectsForGroup(id)
             overrides.deleteEmpty()
             presets.deleteEffectsForGroup(id)
