@@ -4,6 +4,13 @@ An Android alarm clock built around **groups**. Put alarms in groups like *Offic
 
 Material 3 (dynamic color, light/dark), Kotlin + Jetpack Compose, minSdk 26.
 
+<p>
+  <img src="docs/images/alarms.png" width="24%" alt="Alarms screen: groups with a 'wfh week' override pausing Office and switching WFH to weekdays">
+  <img src="docs/images/overrides.png" width="24%" alt="Overrides screen: a 'wfh week' preset and the active override">
+  <img src="docs/images/edit-override.png" width="24%" alt="Editing an override: pause Office, ring WFH on weekdays">
+  <img src="docs/images/settings.png" width="24%" alt="Settings: defaults for new alarms and behavior">
+</p>
+
 ## Download
 
 Grab the latest APK from **[Releases](https://github.com/patheticGeek/AlarmGroups/releases/latest)** and open it on your phone (allow "install unknown apps" for your browser when asked). Every push to `master` publishes a new release, signed with the same key, so newer versions install over older ones and keep your alarms.
