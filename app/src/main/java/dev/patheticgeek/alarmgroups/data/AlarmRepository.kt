@@ -216,19 +216,53 @@ class AlarmRepository(
         onChanged()
     }
 
-    /** Deletes a group together with its alarms. */
-    suspend fun deleteGroup(id: Long) {
-        val removed = alarms.inGroup(id).map { it.id }
-        db.withTransaction {
-            val g = groups.get(id) ?: return@withTransaction
+    /** Everything [deleteGroup] removed, so [restoreGroup] can put it back. */
+    data class DeletedGroup(
+        val group: AlarmGroup,
+        val alarms: List<Alarm>,
+        val overrides: List<OverrideWithEffects>,
+        val presets: List<PresetWithEffects>,
+    )
+
+    /** Deletes a group together with its alarms. Returns what was removed (for "undo"). */
+    suspend fun deleteGroup(id: Long): DeletedGroup? {
+        val deleted = db.withTransaction {
+            val g = groups.get(id) ?: return@withTransaction null
+            // Keep only this group's effects; overrides/presets without other effects get deleted with it.
+            val touchedOverrides = overrides.getAll()
+                .map { o -> o.copy(effects = o.effects.filter { it.targetGroupId == id }) }
+                .filter { it.effects.isNotEmpty() }
+            val touchedPresets = presets.getAll()
+                .map { p -> p.copy(effects = p.effects.filter { it.targetGroupId == id }) }
+                .filter { it.effects.isNotEmpty() }
+            val groupAlarms = alarms.inGroup(id)
             alarms.deleteInGroup(id)
             overrides.deleteEffectsForGroup(id)
             overrides.deleteEmpty()
             presets.deleteEffectsForGroup(id)
             presets.deleteEmpty()
             groups.delete(g)
+            DeletedGroup(g, groupAlarms, touchedOverrides, touchedPresets)
+        } ?: return null
+        onRemoved(deleted.alarms.map { it.id })
+        onChanged()
+        return deleted
+    }
+
+    /** Re-inserts a deleted group with its alarms, override and preset effects, all with their original ids. */
+    suspend fun restoreGroup(deleted: DeletedGroup) {
+        db.withTransaction {
+            groups.insert(deleted.group)
+            alarms.insertAll(deleted.alarms)
+            deleted.overrides.forEach { o ->
+                if (overrides.get(o.override.id) == null) overrides.insert(o.override)
+                overrides.insertEffects(o.effects)
+            }
+            deleted.presets.forEach { p ->
+                if (presets.get(p.preset.id) == null) presets.insert(p.preset)
+                presets.insertEffects(p.effects)
+            }
         }
-        onRemoved(removed)
         onChanged()
     }
 

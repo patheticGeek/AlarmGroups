@@ -262,6 +262,28 @@ class AlarmEngineTest {
     }
 
     @Test
+    fun `undoing a group delete restores its alarms, presets and schedule`() = runBlocking {
+        val office = repo.saveGroup(AlarmGroup(name = "Office", repeat = RepeatRule.Daily))
+        val gym = repo.saveGroup(AlarmGroup(name = "Gym", repeat = RepeatRule.Daily))
+        val alarm = repo.saveAlarm(Alarm(groupId = office, hour = 7, minute = 0))
+        val onlyOffice = repo.savePreset(OverridePreset(name = "Off"), listOf(PresetEffect(targetGroupId = office, action = OverrideAction.PAUSE)))
+        val both = repo.savePreset(
+            OverridePreset(name = "Both"),
+            listOf(
+                PresetEffect(targetGroupId = office, action = OverrideAction.PAUSE),
+                PresetEffect(targetGroupId = gym, action = OverrideAction.PAUSE),
+            ),
+        )
+        val before = scheduledTimes()
+        repo.restoreGroup(repo.deleteGroup(office)!!)
+        assertEquals(office, repo.alarm(alarm)!!.groupId)
+        assertEquals("Office", repo.group(office)!!.name)
+        assertNotNull(repo.preset(onlyOffice))
+        assertEquals(setOf(office, gym), repo.preset(both)!!.effects.map { it.targetGroupId }.toSet())
+        assertEquals(before, scheduledTimes())
+    }
+
+    @Test
     fun `skipping a group through a day skips its remaining alarms that day and never shortens a skip`() = runBlocking {
         val g = repo.saveGroup(AlarmGroup(name = "Office", repeat = RepeatRule.Daily))
         repo.saveAlarm(Alarm(groupId = g, hour = 7, minute = 0))

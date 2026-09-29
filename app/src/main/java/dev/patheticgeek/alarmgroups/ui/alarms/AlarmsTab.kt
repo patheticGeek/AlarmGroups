@@ -201,7 +201,19 @@ fun AlarmsTab(
     applying?.let { p ->
         ApplyPresetDialog(p, onDismiss = { applying = null }, onApply = { start, end -> onApplyPreset(p, start, end) })
     }
-    deleteGroup?.let { g -> DeleteGroupDialog(g, onDismiss = { deleteGroup = null }, onDelete = { vm.deleteGroup(g.id) }) }
+    deleteGroup?.let { g -> DeleteGroupDialog(g, onDismiss = { deleteGroup = null }, onDelete = {
+        val pending = vm.deleteGroup(g.id)
+        scope.launch {
+            val deleted = pending.await() ?: return@launch
+            val what = when (val n = deleted.alarms.size) {
+                0 -> "\"${g.name}\" deleted"
+                1 -> "\"${g.name}\" and 1 alarm deleted"
+                else -> "\"${g.name}\" and $n alarms deleted"
+            }
+            val r = snackbar.showSnackbar(what, "Undo", duration = SnackbarDuration.Long)
+            if (r == SnackbarResult.ActionPerformed) vm.restoreGroup(deleted)
+        }
+    }) }
 }
 
 @Composable
@@ -479,7 +491,7 @@ private fun DeleteGroupDialog(group: AlarmGroup, onDismiss: () -> Unit, onDelete
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Delete \"${group.name}\"?") },
-        text = { Text("The group and all of its alarms will be deleted.") },
+        text = { Text("The group and all of its alarms will be deleted. You can undo right after.") },
         confirmButton = {
             TextButton(onClick = { onDelete(); onDismiss() }) {
                 Text("Delete", color = MaterialTheme.colorScheme.error)

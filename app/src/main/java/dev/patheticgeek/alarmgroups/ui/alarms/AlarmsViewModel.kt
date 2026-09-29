@@ -3,6 +3,7 @@ package dev.patheticgeek.alarmgroups.ui.alarms
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.patheticgeek.alarmgroups.AppContainer
+import dev.patheticgeek.alarmgroups.data.AlarmRepository
 import dev.patheticgeek.alarmgroups.data.Snapshot
 import dev.patheticgeek.alarmgroups.domain.ScheduleCalculator
 import dev.patheticgeek.alarmgroups.model.Alarm
@@ -13,6 +14,8 @@ import dev.patheticgeek.alarmgroups.model.ScheduleOverride
 import dev.patheticgeek.alarmgroups.model.UNGROUPED_ID
 import dev.patheticgeek.alarmgroups.ui.components.describe
 import dev.patheticgeek.alarmgroups.util.TimeFormat
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -162,7 +165,9 @@ class AlarmsViewModel(private val c: AppContainer) : ViewModel() {
     fun pauseGroupThrough(id: Long, date: LocalDate?) = launch { repo.pauseGroupThrough(id, date) }
     fun skipGroup(id: Long) = launch { repo.skipNextGroupDay(id) }
     fun clearGroupSkip(id: Long) = launch { repo.clearGroupSkip(id) }
-    fun deleteGroup(id: Long) = launch { repo.deleteGroup(id) }
+    /** Runs in the ViewModel's scope so the delete finishes even if the screen goes away; await it for undo. */
+    fun deleteGroup(id: Long): Deferred<AlarmRepository.DeletedGroup?> = viewModelScope.async { repo.deleteGroup(id) }
+    fun restoreGroup(deleted: AlarmRepository.DeletedGroup) = launch { repo.restoreGroup(deleted) }
 
     fun createStarterGroups() = launch {
         repo.createStarterGroups()
