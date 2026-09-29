@@ -74,6 +74,7 @@ import dev.patheticgeek.alarmgroups.util.TimeFormat
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 
 @Composable
 fun AlarmsTab(
@@ -356,11 +357,16 @@ private fun GroupHeader(
                         } else {
                             DropdownMenuItem(text = { Text("Pause until…") }, onClick = { menu = false; onPause() })
                         }
-                        if (section.isSkipping) {
-                            DropdownMenuItem(text = { Text("Undo skip") }, onClick = { menu = false; onClearSkip() })
-                        } else {
+                        val skipThrough = section.skipThrough
+                        if (skipThrough != null) {
                             DropdownMenuItem(
-                                text = { Text("Skip next day") },
+                                text = { Text("Stop skipping ${TimeFormat.inlineDay(skipThrough)}") },
+                                onClick = { menu = false; onClearSkip() },
+                            )
+                        } else {
+                            val day = section.nextRing?.atZone(ZoneId.systemDefault())?.toLocalDate()
+                            DropdownMenuItem(
+                                text = { Text(if (day == null) "Skip next day" else "Skip all alarms ${TimeFormat.inlineDay(day)}") },
                                 enabled = section.alarms.any { it.next != null },
                                 onClick = { menu = false; onSkip() },
                             )
@@ -374,8 +380,16 @@ private fun GroupHeader(
         section.notice?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
         }
-        if (section.isSkipping) {
-            Text("Skipping next day", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+        section.skipThrough?.let { through ->
+            Text(
+                if (through == LocalDate.now() || through == LocalDate.now().plusDays(1)) {
+                    "All alarms skipped ${TimeFormat.inlineDay(through)}"
+                } else {
+                    "All alarms skipped through ${TimeFormat.day(through)}"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.tertiary,
+            )
         }
     }
 }
@@ -421,11 +435,14 @@ private fun AlarmRow(
             Box {
                 IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, contentDescription = "Alarm options") }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    if (item.skipping != null) {
-                        DropdownMenuItem(text = { Text("Undo skip") }, onClick = { menu = false; onClearSkip() })
-                    } else {
+                    if (item.skipping != null && a.skipUntil != null) {
                         DropdownMenuItem(
-                            text = { Text("Skip next") },
+                            text = { Text("Don't skip ${TimeFormat.inlineWhen(context, item.skipping)}") },
+                            onClick = { menu = false; onClearSkip() },
+                        )
+                    } else if (item.skipping == null) {
+                        DropdownMenuItem(
+                            text = { Text(item.next?.let { "Skip ${TimeFormat.inlineWhen(context, it)}" } ?: "Skip next") },
                             enabled = item.next != null && item.snoozedUntil == null,
                             onClick = { menu = false; onSkip() },
                         )
@@ -445,7 +462,7 @@ private fun StatusLine(item: AlarmItem, now: Instant) {
         item.snoozedUntil != null -> "Snoozed until ${TimeFormat.whenString(context, item.snoozedUntil)}" to MaterialTheme.colorScheme.tertiary
         item.next == null -> "Won't ring — group is off or paused" to MaterialTheme.colorScheme.error
         item.skipping != null ->
-            "Skipping ${TimeFormat.whenString(context, item.skipping)} · next ${TimeFormat.whenString(context, item.next)}" to
+            "Skipped ${TimeFormat.inlineWhen(context, item.skipping)} · next ring ${TimeFormat.inlineWhen(context, item.next)}" to
                 MaterialTheme.colorScheme.tertiary
         else -> "${TimeFormat.whenString(context, item.next)} · ${TimeFormat.until(item.next, now)}" to MaterialTheme.colorScheme.primary
     }

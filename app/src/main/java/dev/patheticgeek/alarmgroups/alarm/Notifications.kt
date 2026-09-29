@@ -196,16 +196,13 @@ object Notifications {
                 )
                 addAction(
                     0,
-                    context.getString(R.string.skip_group_day, group.name, TimeFormat.day(day).lowercaseIfRelative()),
+                    context.getString(R.string.skip_group_day, group.name, TimeFormat.inlineDay(day)),
                     skipGroup,
                 )
             }
             .build()
         post(context, UPCOMING_BASE + alarm.id.toInt(), n)
     }
-
-    /** "Today"/"Tomorrow" read better mid-sentence in lower case; dates stay as they are. */
-    private fun String.lowercaseIfRelative() = if (this == "Today" || this == "Tomorrow") lowercase() else "on $this"
 
     fun cancelUpcoming(context: Context, alarmId: Long) =
         NotificationManagerCompat.from(context).cancel(UPCOMING_BASE + alarmId.toInt())

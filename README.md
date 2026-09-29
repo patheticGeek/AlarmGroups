@@ -17,7 +17,7 @@ A group is a set of alarms that share one repeat schedule, e.g. *Office* on week
 - **Repeat rules:** once (next occurrence, or on a chosen date), daily, weekly on chosen days, or every N days from a start date.
 - **On/off switch:** turns every alarm in the group off or on at once. Groups you only use through overrides (like *Vacation*) can stay off.
 - **Pause until…:** silences the group through a date; it resumes by itself the day after. *Resume now* ends it early.
-- **Skip next day:** skips all the group's alarms on the next day it would ring. *Undo skip* brings them back.
+- **Skip all alarms today/tomorrow/on a date:** skips every alarm in the group on the next day it would ring; the menu names that day. The group then shows *"All alarms skipped today"*, and *Stop skipping* brings them back.
 - **Starter groups:** on first launch the app offers to create *Office*, *WFH*, *No work* and *Vacation*. Rename, change or delete them any time.
 - **Deleting a group** either deletes its alarms or keeps them as ungrouped alarms that carry on with the group's schedule.
 
@@ -30,7 +30,7 @@ A group is a set of alarms that share one repeat schedule, e.g. *Office* on week
 - **Vibration** on or off.
 - **Snooze length** from 1 to 60 minutes.
 - **Ring for** 1–60 minutes or *until I stop it*, and **then** either snooze and ring again or stop.
-- **Skip next:** skips only the next ring; the alarm stays on. On a one-off alarm, skipping switches it off instead.
+- **Skip the next ring** (the menu names it, e.g. *Skip today at 7:00 AM*); the alarm stays on and shows *"Skipped today at 7:00 AM · next ring tomorrow at 7:00 AM"*. On a one-off alarm, skipping switches it off instead.
 - **One-off alarms** switch themselves off after they ring.
 - **Delete** from the alarm's menu, with *Undo*.
 - The editor shows when the alarm will next ring with the current groups and overrides, or warns if it won't ring at all.
@@ -78,7 +78,7 @@ A preset is an override without dates, for changes you make often, e.g. *"WFH: p
 
 ### Notifications
 
-- **Upcoming alarm:** a quiet heads-up before each alarm (1 h by default, 15 min to 3 h, or off) with **Skip this one**.
+- **Upcoming alarm:** a quiet heads-up before each alarm (1 h by default, 15 min to 3 h, or off) with **Skip this one** and, for an alarm in a group, **Skip all *Office* today** to skip the whole group for that day.
 - **Missed alarm:** if the phone was off when an alarm was due.
 - **Backup alarm:** used only if the normal ringing screen can't start (see Reliability).
 

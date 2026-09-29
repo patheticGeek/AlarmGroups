@@ -37,13 +37,15 @@ data class GroupSection(
     val status: String,
     /** Something noteworthy: an active or upcoming override, a pause, a skip. */
     val notice: String?,
-    val isSkipping: Boolean,
+    /** Last day the whole group is skipped through, if a group skip is pending. */
+    val skipThrough: LocalDate?,
     val alarms: List<AlarmItem>,
     val collapsed: Boolean = false,
 ) {
     /** Key used to remember whether this section is collapsed. */
     val key: Long get() = group?.id ?: UNGROUPED_ID
     val nextRing: Instant? get() = alarms.mapNotNull { it.next }.minOrNull()
+    val isSkipping: Boolean get() = skipThrough != null
 }
 
 data class NextAlarm(val alarm: Alarm, val at: Instant)
@@ -89,7 +91,8 @@ class AlarmsViewModel(private val c: AppContainer) : ViewModel() {
                 group = g,
                 status = groupStatus(g, snap.overrides, today),
                 notice = groupNotice(g.id, snap.overrides, today),
-                isSkipping = (g.skipUntil ?: 0) > now.toEpochMilli(),
+                skipThrough = g.skipUntil?.takeIf { it > now.toEpochMilli() }
+                    ?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() },
                 alarms = snap.alarms.filter { it.groupId == g.id }.map(::item),
                 collapsed = g.id in collapsed,
             )
@@ -99,7 +102,7 @@ class AlarmsViewModel(private val c: AppContainer) : ViewModel() {
             group = null,
             status = if (loose.isEmpty()) "Alarms with their own schedule" else "${loose.size} alarm${if (loose.size == 1) "" else "s"}",
             notice = groupNotice(UNGROUPED_ID, snap.overrides, today),
-            isSkipping = false,
+            skipThrough = null,
             alarms = loose.map(::item),
             collapsed = UNGROUPED_ID in collapsed,
         )

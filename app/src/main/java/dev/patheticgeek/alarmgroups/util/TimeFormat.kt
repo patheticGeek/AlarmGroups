@@ -40,6 +40,19 @@ object TimeFormat {
         return "${day(z.toLocalDate(), LocalDate.now(zone))} ${time(context, z.hour, z.minute)}"
     }
 
+    /** For use mid-sentence: "today", "tomorrow", "on Wed, Oct 7". */
+    fun inlineDay(date: LocalDate, today: LocalDate = LocalDate.now()): String = when (date) {
+        today -> "today"
+        today.plusDays(1) -> "tomorrow"
+        else -> "on ${day(date, today)}"
+    }
+
+    /** For use mid-sentence: "today at 7:00 AM", "on Wed, Oct 7 at 7:00 AM". */
+    fun inlineWhen(context: Context, instant: Instant, zone: ZoneId = ZoneId.systemDefault()): String {
+        val z = instant.atZone(zone)
+        return "${inlineDay(z.toLocalDate(), LocalDate.now(zone))} at ${time(context, z.hour, z.minute)}"
+    }
+
     /** "in 7 h 20 min". */
     fun until(instant: Instant, now: Instant = Instant.now()): String {
         val d = Duration.between(now, instant).plusSeconds(59)
